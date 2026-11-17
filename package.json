@@ -1,0 +1,22 @@
+{
+  "name": "campuscare",
+  "version": "3.0.0",
+  "description": "CampusCare PWA: gestión de incidencias de infraestructura universitaria (Node.js + Express + SQLite + Service Worker)",
+  "main": "server.js",
+  "private": true,
+  "scripts": {
+    "start": "node --disable-warning=ExperimentalWarning server.js",
+    "dev": "node --disable-warning=ExperimentalWarning --watch server.js",
+    "reset-db": "node --disable-warning=ExperimentalWarning scripts/reset-db.js",
+    "test": "node --disable-warning=ExperimentalWarning --test test/api.test.js"
+  },
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "express": "^4.21.2",
+    "jsonwebtoken": "^9.0.2",
+    "web-push": "^3.6.7"
+  }
+}

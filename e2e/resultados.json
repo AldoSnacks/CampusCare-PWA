@@ -1,0 +1,139 @@
+{
+  "fecha": "2026-11-17 16:35",
+  "base": "http://localhost:3100",
+  "resultados": [
+    {
+      "id": "E01",
+      "criterio": "Instalación / Manifest",
+      "prueba": "El navegador reconoce el manifest y la app es instalable",
+      "resultado": "Aprobada",
+      "detalle": "errores de manifest: 0; errores de instalación de la app: 0 []"
+    },
+    {
+      "id": "E02",
+      "criterio": "Service Worker / Caché",
+      "prueba": "El service worker se registra y precarga el app shell",
+      "resultado": "Aprobada",
+      "detalle": "scope http://localhost:3100/; cachés: campuscare-app-v3.0.0, campuscare-imagenes; archivos del app shell: 13"
+    },
+    {
+      "id": "E03",
+      "criterio": "Vistas del servidor",
+      "prueba": "La página /estado se genera en el servidor (funciona sin JavaScript)",
+      "resultado": "Aprobada",
+      "detalle": "40 celdas del mapa de calor recibidas como HTML con JavaScript desactivado"
+    },
+    {
+      "id": "E04",
+      "criterio": "Vistas del cliente",
+      "prueba": "Las vistas de la app se generan en el navegador (sin JavaScript quedan vacías)",
+      "resultado": "Aprobada",
+      "detalle": "contenido de #view sin JavaScript: 0 caracteres"
+    },
+    {
+      "id": "E05",
+      "criterio": "Datos remotos",
+      "prueba": "Los reportes se cargan desde la API REST y la base SQLite",
+      "resultado": "Aprobada",
+      "detalle": "10 reportes recibidos de /api/tickets"
+    },
+    {
+      "id": "E06",
+      "criterio": "Elementos físicos: cámara",
+      "prueba": "Se toma la foto de evidencia con la cámara (getUserMedia)",
+      "resultado": "Aprobada",
+      "detalle": "imagen JPEG capturada de 56 KB"
+    },
+    {
+      "id": "E07",
+      "criterio": "Elementos físicos: GPS",
+      "prueba": "Se adjuntan las coordenadas del dispositivo (Geolocation API)",
+      "resultado": "Aprobada",
+      "detalle": "lat 19.0614, lng -98.3089, precisión 15 m"
+    },
+    {
+      "id": "E08",
+      "criterio": "Datos locales",
+      "prueba": "El borrador del reporte se guarda en IndexedDB y se recupera al recargar",
+      "resultado": "Aprobada",
+      "detalle": "descripción, foto y GPS recuperados: {'desc': 'El proyector del aula B-102 no proyecta imagen; prueba con cámara y GPS.', 'foto': True, 'gps': True}"
+    },
+    {
+      "id": "E09",
+      "criterio": "Datos offline",
+      "prueba": "Sin internet el reporte se guarda en la cola local (IndexedDB)",
+      "resultado": "Aprobada",
+      "detalle": "1 reporte(s) en la cola"
+    },
+    {
+      "id": "E10",
+      "criterio": "Funcionamiento sin conexión",
+      "prueba": "Sin internet la API responde con la última copia guardada por el service worker",
+      "resultado": "Aprobada",
+      "detalle": "cabecera X-Desde-Cache: service-worker"
+    },
+    {
+      "id": "E11",
+      "criterio": "Funcionamiento sin conexión",
+      "prueba": "La aplicación vuelve a abrir sin internet desde la caché",
+      "resultado": "Aprobada",
+      "detalle": "recarga completa en modo avión"
+    },
+    {
+      "id": "E12",
+      "criterio": "Actualización de datos",
+      "prueba": "Al volver la conexión la cola se envía sola al servidor",
+      "resultado": "Aprobada",
+      "detalle": "reportes antes: 10, después: 11"
+    },
+    {
+      "id": "E13",
+      "criterio": "Elementos físicos: vibración",
+      "prueba": "La app hace vibrar el dispositivo al capturar, ubicar y enviar",
+      "resultado": "Aprobada",
+      "detalle": "patrones enviados: [30, 40, [60, 40, 60], [60, 40, 60]]"
+    },
+    {
+      "id": "E14",
+      "criterio": "Persistencia de sesión",
+      "prueba": "Al abrir la app de nuevo la sesión se recupera desde IndexedDB",
+      "resultado": "Aprobada",
+      "detalle": "pestaña nueva sin sessionStorage"
+    },
+    {
+      "id": "E15",
+      "criterio": "Actualización de datos",
+      "prueba": "Un cambio hecho por otro usuario aparece sin recargar (Server-Sent Events)",
+      "resultado": "Aprobada",
+      "detalle": "CC-1021 pasó a Asignado en la pantalla del alumno"
+    },
+    {
+      "id": "E16",
+      "criterio": "Notificaciones",
+      "prueba": "El cambio de estado se muestra como notificación del sistema",
+      "resultado": "Aprobada",
+      "detalle": "notificaciones visibles: ['CampusCare · CC-1021 · Asignado']"
+    },
+    {
+      "id": "E17",
+      "criterio": "Notificaciones push",
+      "prueba": "Suscripción Web Push con la llave VAPID del servidor",
+      "resultado": "Manual",
+      "detalle": "sin servicio push en este navegador de pruebas: Registration failed - permission denied"
+    },
+    {
+      "id": "E18",
+      "criterio": "Integración con el dispositivo",
+      "prueba": "Compartir el seguimiento (Web Share o portapapeles)",
+      "resultado": "Aprobada",
+      "detalle": "http://localhost:3100/reporte/CC-1021"
+    },
+    {
+      "id": "E19",
+      "criterio": "Diseño responsivo",
+      "prueba": "En 390 px de ancho se usa la barra inferior y no hay desplazamiento horizontal",
+      "resultado": "Aprobada",
+      "detalle": "ancho del documento: 390px; barra inferior visible: True"
+    }
+  ]
+}

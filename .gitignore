@@ -1,0 +1,9 @@
+node_modules/
+database/campuscare.db
+database/campuscare.db-journal
+database/*.db-wal
+database/*.db-shm
+database/vapid.json
+uploads/*
+!uploads/.gitkeep
+.env
