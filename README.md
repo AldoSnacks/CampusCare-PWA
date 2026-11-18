@@ -3,6 +3,8 @@
 Sistema para reportar y dar seguimiento a incidencias de infraestructura universitaria.
 Funciona en la computadora y en el celular, se puede **instalar**, trabaja **sin conexión** y envía **notificaciones push**.
 
+**Aplicación publicada:** <https://campuscare-r0v8.onrender.com> · Vista del servidor: <https://campuscare-r0v8.onrender.com/estado>
+
 | Capa | Tecnología |
 |---|---|
 | Frontend (vistas del cliente) | HTML, CSS y JavaScript (carpeta `public/`) |
