@@ -111,6 +111,13 @@ ACCIONES['bv-entrar'] = () => {
   mostrarAcceso(false);
   $('#loginEmail').focus();
 };
+/* Botones de cuentas de demostración en la portada (entran con un clic) */
+ACCIONES['bv-demo'] = (id, el) => {
+  if (Auth.sesion()) cerrarSesion(false);
+  irA('/entrar');
+  mostrarAcceso(false);
+  ACCIONES.demo(id, el);
+};
 ACCIONES['bv-registro'] = () => {
   irA('/registro');
   mostrarAcceso(true, '');

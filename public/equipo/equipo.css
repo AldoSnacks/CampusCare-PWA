@@ -281,3 +281,9 @@
 }
 
 a.btn { text-decoration: none; }
+
+/* Cuentas de demostración en la portada */
+.bv-demo { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: .85rem; opacity: .95; }
+.bv-demo-btn { display: inline-flex; align-items: center; gap: 6px; padding: .4em .85em; border-radius: 999px; font-size: .82rem; font-weight: 700; color: #fff; background: rgba(255, 255, 255, .12); border: 1px solid rgba(255, 255, 255, .3); transition: .2s; }
+.bv-demo-btn:hover { background: rgba(255, 255, 255, .24); }
+.bv-demo-btn .ic { width: 15px; height: 15px; }

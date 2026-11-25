@@ -7,7 +7,7 @@
    ========================================================= */
 'use strict';
 
-const VERSION = 'v4.0.0';
+const VERSION = 'v4.0.1';
 const CACHE_APP = `campuscare-app-${VERSION}`;
 const CACHE_IMG = 'campuscare-imagenes';
 const CACHE_API = 'campuscare-api';
