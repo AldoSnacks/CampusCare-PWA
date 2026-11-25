@@ -64,6 +64,7 @@ function mapear(filas) {
       descripcion: t.descripcion,
       foto: t.foto,
       estado: t.estado,
+      origen: t.origen || 'formulario',
       tecnico: t.tec_correo || null,
       tecnicoNombre: t.tec_nombre || null,
       rechazo: t.motivo_rechazo,
@@ -109,6 +110,12 @@ function leerGps(g) {
   return { lat: Math.round(lat * 1e6) / 1e6, lng: Math.round(lng * 1e6) / 1e6, precision: Number.isFinite(precision) ? Math.round(precision) : null };
 }
 
+const NOTA_ORIGEN = {
+  formulario: 'Incidencia registrada por el solicitante',
+  reporte_visual: 'Reporte visual con anotaciones sobre la fotografía',
+  sin_conexion: 'Reporte capturado sin conexión y sincronizado al volver la red'
+};
+
 /* ---------------- RF-02: alta de incidencia ---------------- */
 function crear(usuario, d) {
   const db = conexion();
@@ -135,20 +142,25 @@ function crear(usuario, d) {
   const severidad = db.prepare('SELECT nombre FROM severidades WHERE nombre = ?').get(d.severidad);
   if (!severidad) throw new ErrorHttp(400, 'La severidad seleccionada no existe.');
 
-  const foto = guardarFoto(d.foto, 'reporte');
+  const ORIGENES = ['formulario', 'reporte_visual', 'sin_conexion'];
+  const origenReporte = ORIGENES.includes(d.origen) ? d.origen : 'formulario';
+
+  const foto = guardarFoto(d.foto, origenReporte === 'reporte_visual' ? 'visual' : 'reporte');
   try {
     return transaccion(() => {
       const ahora = fecha();
       const id = Number(db.prepare(`INSERT INTO tickets
-        (solicitante_id, espacio_id, activo, categoria_id, severidad, descripcion, foto, estado, latitud, longitud, precision_m, cliente_id, creado_en, actualizado_en)
-        VALUES (?, ?, ?, ?, ?, ?, ?, 'Abierto', ?, ?, ?, ?, ?, ?)`)
+        (solicitante_id, espacio_id, activo, categoria_id, severidad, descripcion, foto, estado, latitud, longitud, precision_m, cliente_id, origen, creado_en, actualizado_en)
+        VALUES (?, ?, ?, ?, ?, ?, ?, 'Abierto', ?, ?, ?, ?, ?, ?, ?)`)
         .run(usuario.id, espacio.id, String(d.activo).slice(0, 80), categoria.id, severidad.nombre, descripcion, foto,
-          gps?.lat ?? null, gps?.lng ?? null, gps?.precision ?? null, clienteId, ahora, ahora).lastInsertRowid);
+          gps?.lat ?? null, gps?.lng ?? null, gps?.precision ?? null, clienteId, origenReporte, ahora, ahora).lastInsertRowid);
       const { folio } = db.prepare('SELECT folio FROM tickets WHERE id = ?').get(id);
       db.prepare('INSERT INTO historial_estados (ticket_id, estado_anterior, estado_nuevo, usuario_id, usuario_nombre, nota, fecha) VALUES (?, NULL, ?, ?, ?, ?, ?)')
-        .run(id, 'Abierto', usuario.id, usuario.nombre, 'Incidencia registrada por el solicitante', ahora);
+        .run(id, 'Abierto', usuario.id, usuario.nombre, NOTA_ORIGEN[origenReporte], ahora);
       const admins = db.prepare("SELECT id FROM usuarios WHERE rol = 'admin' AND activo = 1 AND id <> ?").all(usuario.id);
-      for (const a of admins) notificar(db, a.id, id, `Nuevo reporte ${folio}`, `${d.categoria} · ${d.severidad} — Edif. ${d.edificio} · ${d.espacio}`);
+      // Los reportes de severidad Crítica se envían como alerta (en la web y como push en el teléfono)
+      const titulo = severidad.nombre === 'Crítica' ? `Alerta crítica ${folio}` : `Nuevo reporte ${folio}`;
+      for (const a of admins) notificar(db, a.id, id, titulo, `${d.categoria} · ${d.severidad} — Edif. ${d.edificio} · ${d.espacio}`);
       return folio;
     });
   } catch (e) {
@@ -228,6 +240,49 @@ function transicion(usuario, folio, d) {
   }
 }
 
+/* ---------------- Edición de datos del reporte ---------------- */
+/* El solicitante puede corregir su reporte mientras está Abierto; el admin, en cualquier momento */
+function editar(usuario, folio, d) {
+  const db = conexion();
+  const t = obtener(folio);
+  if (usuario.rol === 'solicitante') {
+    if (t.solicitante_id !== usuario.id) throw new ErrorHttp(403, 'Solo puedes editar tus propios reportes.');
+    if (t.estado !== 'Abierto') throw new ErrorHttp(409, 'Solo puedes editar reportes que aún no han sido asignados.');
+  } else if (usuario.rol !== 'admin') {
+    throw new ErrorHttp(403, 'Tu rol no puede editar reportes.');
+  }
+  const cambios = {};
+  if (d.descripcion != null) {
+    const desc = String(d.descripcion).trim();
+    if (desc.length < 10 || desc.length > 500) throw new ErrorHttp(400, 'La descripción debe tener entre 10 y 500 caracteres.');
+    if (desc !== t.descripcion) cambios.descripcion = desc;
+  }
+  if (d.severidad != null && d.severidad !== t.severidad) {
+    if (!db.prepare('SELECT 1 FROM severidades WHERE nombre = ?').get(d.severidad)) throw new ErrorHttp(400, 'La severidad seleccionada no existe.');
+    cambios.severidad = d.severidad;
+  }
+  if (d.activo != null) {
+    const activo = String(d.activo).trim().slice(0, 80);
+    if (!activo) throw new ErrorHttp(400, 'Indica el activo afectado.');
+    if (activo !== t.activo) cambios.activo = activo;
+  }
+  const campos = Object.keys(cambios);
+  if (!campos.length) return false;
+  transaccion(() => {
+    const ahora = fecha();
+    db.prepare(`UPDATE tickets SET ${campos.map(c => `${c} = ?`).join(', ')}, actualizado_en = ? WHERE id = ?`)
+      .run(...campos.map(c => cambios[c]), ahora, t.id);
+    const nombres = { descripcion: 'descripción', severidad: 'severidad', activo: 'activo' };
+    db.prepare('INSERT INTO historial_estados (ticket_id, estado_anterior, estado_nuevo, usuario_id, usuario_nombre, nota, fecha) VALUES (?, ?, ?, ?, ?, ?, ?)')
+      .run(t.id, t.estado, t.estado, usuario.id, usuario.nombre, `Reporte editado: ${campos.map(c => nombres[c]).join(', ')}`, ahora);
+    if (cambios.severidad === 'Crítica') {
+      const admins = db.prepare("SELECT id FROM usuarios WHERE rol = 'admin' AND activo = 1 AND id <> ?").all(usuario.id);
+      for (const a of admins) notificar(db, a.id, t.id, `Alerta crítica ${folio}`, `La severidad del reporte subió a Crítica — Edif. ${t.edificio} · ${t.espacio_nombre}`);
+    }
+  });
+  return true;
+}
+
 /* ---------------- Baja de un ticket ---------------- */
 function eliminar(usuario, folio) {
   const db = conexion();
@@ -244,4 +299,4 @@ function eliminar(usuario, folio) {
   borrarFotos(t.foto, res?.foto);
 }
 
-module.exports = { listar, crear, transicion, eliminar };
+module.exports = { listar, crear, transicion, editar, eliminar, notificar };

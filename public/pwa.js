@@ -598,13 +598,14 @@ entrarApp = async function (s) {
 };
 const _cerrarSesion = cerrarSesion;
 cerrarSesion = function (expirada = false) {
-  // Al cerrar sesión se quita la suscripción push del servidor y la copia local de la API
+  // Al cerrar sesión se quita la suscripción push de este dispositivo
   (async () => {
     const sub = await PWA.registro?.pushManager?.getSubscription().catch(() => null);
     if (sub) await sub.unsubscribe().catch(() => {});
     PWA.push.activo = false;
   })();
-  navigator.serviceWorker?.controller?.postMessage({ tipo: 'limpiar-api' });
+  // La copia de la API ya no se borra: se guarda por usuario (_u) para el acceso sin conexión
+  // del módulo de Adrián; "Olvidar este dispositivo" la quita cuando el usuario lo pide.
   borradorGuardado = null;
   borradorRecuperado = false;
   PWA.pendientes = [];

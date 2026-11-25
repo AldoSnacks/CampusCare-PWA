@@ -1,5 +1,5 @@
 {
-  "fecha": "2026-11-17 16:35",
+  "fecha": "2026-11-24 19:52",
   "base": "http://localhost:3100",
   "resultados": [
     {
@@ -14,7 +14,7 @@
       "criterio": "Service Worker / Caché",
       "prueba": "El service worker se registra y precarga el app shell",
       "resultado": "Aprobada",
-      "detalle": "scope http://localhost:3100/; cachés: campuscare-app-v3.0.0, campuscare-imagenes; archivos del app shell: 13"
+      "detalle": "scope http://localhost:3100/; cachés: campuscare-app-v4.0.0, campuscare-imagenes; archivos del app shell: 20"
     },
     {
       "id": "E03",
@@ -35,7 +35,7 @@
       "criterio": "Datos remotos",
       "prueba": "Los reportes se cargan desde la API REST y la base SQLite",
       "resultado": "Aprobada",
-      "detalle": "10 reportes recibidos de /api/tickets"
+      "detalle": "14 reportes recibidos de /api/tickets"
     },
     {
       "id": "E06",
@@ -84,7 +84,7 @@
       "criterio": "Actualización de datos",
       "prueba": "Al volver la conexión la cola se envía sola al servidor",
       "resultado": "Aprobada",
-      "detalle": "reportes antes: 10, después: 11"
+      "detalle": "reportes antes: 14, después: 15"
     },
     {
       "id": "E13",
@@ -105,14 +105,14 @@
       "criterio": "Actualización de datos",
       "prueba": "Un cambio hecho por otro usuario aparece sin recargar (Server-Sent Events)",
       "resultado": "Aprobada",
-      "detalle": "CC-1021 pasó a Asignado en la pantalla del alumno"
+      "detalle": "CC-1028 pasó a Asignado en la pantalla del alumno"
     },
     {
       "id": "E16",
       "criterio": "Notificaciones",
       "prueba": "El cambio de estado se muestra como notificación del sistema",
       "resultado": "Aprobada",
-      "detalle": "notificaciones visibles: ['CampusCare · CC-1021 · Asignado']"
+      "detalle": "notificaciones visibles: ['CampusCare · CC-1028 · Asignado']"
     },
     {
       "id": "E17",
@@ -126,7 +126,7 @@
       "criterio": "Integración con el dispositivo",
       "prueba": "Compartir el seguimiento (Web Share o portapapeles)",
       "resultado": "Aprobada",
-      "detalle": "http://localhost:3100/reporte/CC-1021"
+      "detalle": "http://localhost:3100/reporte/CC-1028"
     },
     {
       "id": "E19",

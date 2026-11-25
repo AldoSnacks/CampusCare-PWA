@@ -214,3 +214,107 @@ test('P20 · Se valida y guarda la suscripción push del dispositivo', async () 
   assert.equal(prueba.status, 200);
   assert.equal(prueba.datos.total, 1);
 });
+
+/* ---------- Integración del equipo ---------- */
+test('P21 · La bitácora registra altas, ediciones y bajas con usuario y módulo', async () => {
+  const alta = await pedir('/api/tickets', { method: 'POST', token: tokens.alumno, body: reporteValido({ descripcion: 'Contacto flojo junto al pizarrón del aula.' }) });
+  assert.equal(alta.status, 201);
+  const folio = alta.datos.folio;
+  const ed = await pedirConModulo(`/api/tickets/${folio}`, 'formulario', { method: 'PATCH', token: tokens.alumno, body: { severidad: 'Baja', descripcion: 'Contacto flojo junto al pizarrón del aula B-101.' } });
+  assert.equal(ed.status, 200);
+  assert.equal(ed.datos.cambio, true);
+  const baja = await pedir(`/api/tickets/${folio}`, { method: 'DELETE', token: tokens.alumno });
+  assert.equal(baja.status, 200);
+  const b = await pedir(`/api/bitacora?buscar=${folio}`, { token: tokens.admin });
+  assert.equal(b.status, 200);
+  const ops = b.datos.registros.filter(r => r.tabla === 'tickets').map(r => r.operacion);
+  assert.ok(ops.includes('INSERT') && ops.includes('UPDATE') && ops.includes('DELETE'), ops.join(','));
+  const edicion = b.datos.registros.find(r => r.operacion === 'UPDATE' && r.tabla === 'tickets');
+  assert.match(edicion.cambios, /severidad: Media → Baja/);
+  assert.equal(edicion.usuario, 'María Fernanda López');
+  assert.equal(edicion.modulo, 'formulario');
+});
+
+test('P22 · Un alumno solo ve sus propios cambios en la bitácora', async () => {
+  const r = await pedir('/api/bitacora', { token: tokens.alumno });
+  assert.equal(r.status, 200);
+  assert.ok(r.datos.registros.every(x => x.usuario === 'María Fernanda López'));
+});
+
+test('P23 · La bitácora no se puede modificar desde el explorador', async () => {
+  const r = await pedir('/api/admin/tablas/bitacora/1', { method: 'DELETE', token: tokens.admin });
+  assert.equal(r.status, 400);
+});
+
+test('P24 · Auditoría Wi-Fi: el servidor recalcula el semáforo de aptitud', async () => {
+  const r = await pedir('/api/red/auditorias', { method: 'POST', token: tokens.alumno, body: { latencia_ms: 40, jitter_ms: 8, perdida_pct: 0, velocidad_mbps: 35, tipo_conexion: 'wifi', ubicacion: 'Pasillo' } });
+  assert.equal(r.status, 201);
+  assert.equal(r.datos.aptitud.videollamadas.etiqueta, 'Apto');
+  assert.equal(r.datos.aptitud.degradada, false);
+  const mala = await pedir('/api/red/auditorias', { method: 'POST', token: tokens.alumno, body: { latencia_ms: 280, jitter_ms: 70, perdida_pct: 33, velocidad_mbps: 1.1 } });
+  assert.equal(mala.datos.aptitud.videollamadas.etiqueta, 'No viable');
+  assert.equal(mala.datos.aptitud.descargas.etiqueta, 'Muy lento');
+});
+
+test('P25 · Una zona muerta se escala a ticket Red/TI crítico con origen auditoría', async () => {
+  const r = await pedir('/api/red/auditorias', { method: 'POST', token: tokens.alumno, body: { sin_conexion: true, escalar: true, edificio: 'C', nivel: 'PB', espacio: 'Área de préstamo', clienteId: 'red-prueba-1' } });
+  assert.equal(r.status, 201, r.datos.error);
+  assert.match(r.datos.folio, /^CC-\d+$/);
+  const lista = await pedir('/api/tickets', { token: tokens.admin });
+  const t = lista.datos.find(x => x.id === r.datos.folio);
+  assert.equal(t.categoria, 'Red/TI');
+  assert.equal(t.severidad, 'Crítica');
+  assert.equal(t.origen, 'auditoria_red');
+  const otra = await pedir('/api/red/auditorias', { method: 'POST', token: tokens.alumno, body: { sin_conexion: true, escalar: true, edificio: 'C', nivel: 'PB', espacio: 'Área de préstamo', clienteId: 'red-prueba-1' } });
+  assert.equal(otra.datos.folio, r.datos.folio, 'la cola offline no duplica la medición');
+});
+
+test('P26 · Reporte visual: se guarda con su origen', async () => {
+  const r = await pedirConModulo('/api/tickets', 'reporte-visual', { method: 'POST', token: tokens.alumno, body: reporteValido({ origen: 'reporte_visual', descripcion: 'Reporte visual de prueba con anotaciones.' }) });
+  assert.equal(r.status, 201);
+  const lista = await pedir('/api/tickets', { token: tokens.alumno });
+  assert.equal(lista.datos.find(x => x.id === r.datos.folio).origen, 'reporte_visual');
+});
+
+test('P27 · Registro por enlace: la invitación define el rol y cuenta sus usos', async () => {
+  const inv = await pedir('/api/invitaciones', { method: 'POST', token: tokens.admin, body: { rol: 'mantenimiento', dias: 3, maxUsos: 1 } });
+  assert.equal(inv.status, 201);
+  const info = await pedir(`/api/auth/invitacion/${inv.datos.codigo}`);
+  assert.equal(info.datos.rol, 'mantenimiento');
+  const reg = await pedir('/api/auth/registro', { method: 'POST', body: { nombre: 'Técnico Invitado', correo: 'invitado.tec@institucion.edu.mx', password: 'Prueba2026', codigo: inv.datos.codigo } });
+  assert.equal(reg.status, 201, reg.datos.error);
+  assert.equal(reg.datos.usuario.rol, 'mantenimiento');
+  const otra = await pedir('/api/auth/registro', { method: 'POST', body: { nombre: 'Segundo Invitado', correo: 'invitado.dos@institucion.edu.mx', password: 'Prueba2026', codigo: inv.datos.codigo } });
+  assert.equal(otra.status, 410, 'el enlace ya alcanzó su máximo de usos');
+});
+
+test('P28 · Un alumno no puede crear invitaciones de administrador', async () => {
+  const r = await pedir('/api/invitaciones', { method: 'POST', token: tokens.alumno, body: { rol: 'admin' } });
+  assert.equal(r.status, 403);
+  const ok = await pedir('/api/invitaciones', { method: 'POST', token: tokens.alumno, body: { rol: 'solicitante' } });
+  assert.equal(ok.status, 201);
+});
+
+test('P29 · El código QR se genera en SVG solo para enlaces de la aplicación', async () => {
+  const ok = await pedir(`/api/qr?texto=${encodeURIComponent(`${BASE}/registro?codigo=EXPO-2026`)}`);
+  assert.equal(ok.status, 200);
+  assert.match(ok.datos, /^<svg/);
+  const fuera = await pedir(`/api/qr?texto=${encodeURIComponent('https://ejemplo.com/')}`);
+  assert.equal(fuera.status, 400);
+});
+
+test('P30 · Las páginas de bienvenida y registro cargan la aplicación', async () => {
+  for (const ruta of ['/bienvenida', '/registro']) {
+    const r = await pedir(ruta);
+    assert.equal(r.status, 200);
+    assert.match(r.datos, /id="bienvenida"/);
+  }
+});
+
+async function pedirConModulo(ruta, modulo, { method = 'GET', body, token } = {}) {
+  const res = await fetch(BASE + ruta, {
+    method, body: body !== undefined ? JSON.stringify(body) : undefined,
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'X-Modulo': modulo }
+  });
+  return { status: res.status, datos: await res.json() };
+}

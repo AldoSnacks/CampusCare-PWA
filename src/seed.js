@@ -5,6 +5,8 @@
 'use strict';
 const bcrypt = require('bcryptjs');
 const { conexion, transaccion, fecha } = require('./db');
+const bitacora = require('./bitacora');
+const red = require('./red');
 
 const PASSWORD_DEMO = 'Campus2026';
 const HORA = 3600000;
@@ -86,6 +88,31 @@ const TICKETS = [
   ['B', 'N1', 'Aula B-202', 'Proyector', 'Red/TI', 'Baja', 'El control remoto del proyector no funciona.', 'Cerrado', 50, 20, 0]
 ];
 
+// Reportes generados por los módulos del equipo
+// [..., técnico, origen, foto, correo del solicitante]
+const TICKETS_EQUIPO = [
+  ['B', 'PB', 'Aula B-102', 'Proyector', 'Red/TI', 'Media', 'Reporte visual: el proyector no muestra imagen aunque enciende (marcado en la foto).', 'Asignado', 26, null, 0, 'reporte_visual', 'img/demo-visual-1.jpg', 'alumno@institucion.edu.mx'],
+  ['B', 'N2', 'Aula B-301', 'Luminarias', 'Eléctrica', 'Baja', 'Reporte visual: la luminaria del fondo parpadea todo el tiempo (marcada en amarillo).', 'Abierto', 5, null, null, 'reporte_visual', 'img/demo-visual-2.jpg', 'docente@institucion.edu.mx'],
+  ['B', 'PB', 'Aula B-103', 'Pupitres / sillas', 'Mobiliario', 'Baja', 'Reporte visual: butaca de la primera fila con la pata rota (encerrada en rojo).', 'Cerrado', 70, 20, 2, 'reporte_visual', 'img/demo-visual-3.jpg', 'alumno@institucion.edu.mx'],
+  ['B', 'N1', 'Aula B-202', 'Ventanas', 'Estructural', 'Media', 'Reporte visual: la ventana izquierda no cierra y entra agua cuando llueve.', 'En Proceso', 15, null, 2, 'reporte_visual', 'img/demo-visual-4.jpg', 'docente@institucion.edu.mx'],
+  ['B', 'N2', 'Lab. de Redes', 'Access point Wi-Fi', 'Red/TI', 'Crítica', '[Auditoría Wi-Fi] Latencia 340 ms · jitter 85 ms · pérdida 33% · 0.9 Mbps (wifi). Videollamadas: No viable; Git/Cloud: Crítico; descargas: Muy lento.', 'Asignado', 9, null, 0, 'auditoria_red', 'img/cat-red.jpg', 'alumno@institucion.edu.mx'],
+  ['C', 'N1', 'Cubículos de estudio', 'Access point Wi-Fi', 'Red/TI', 'Crítica', '[Zona muerta] Sin conexión a la red institucional en Edif. C · N1 · Cubículos de estudio.', 'Abierto', 3, null, null, 'auditoria_red', 'img/cat-red.jpg', 'docente@institucion.edu.mx'],
+  ['D', 'N2', 'Cafetería', 'Lavabo / llave', 'Plomería', 'Media', 'Fuga en la tarja de la cafetería; se reportó sin señal y se envió al recuperar la red.', 'Asignado', 12, null, 1, 'sin_conexion', 'img/cat-plomeria.jpg', 'alumno@institucion.edu.mx']
+];
+
+// Mediciones Wi-Fi: [edificio, nivel, espacio, latencia, jitter, pérdida, Mbps, tipo, sin red, horas atrás, quién, activo del ticket escalado]
+const AUDITORIAS = [
+  ['B', 'PB', 'Aula B-101', 38, 9, 0, 42.6, 'wifi', 0, 140, 'alumno@institucion.edu.mx'],
+  ['A', 'N2', 'Auditorio', 64, 14, 0, 18.4, 'wifi', 0, 120, 'docente@institucion.edu.mx'],
+  ['C', 'PB', 'Acervo general', 132, 34, 0, 6.2, 'wifi', 0, 96, 'alumno@institucion.edu.mx'],
+  ['D', 'N1', 'Lab. de Cómputo 1', 22, 6, 0, 88.1, 'ethernet', 0, 72, 'tecnico@institucion.edu.mx'],
+  ['B', 'N2', 'Lab. de Redes', 340, 85, 33, 0.9, 'wifi', 0, 9, 'alumno@institucion.edu.mx', 'Access point Wi-Fi'],
+  ['B', 'N2', 'Lab. de Redes', 210, 52, 0, 3.1, 'wifi', 0, 30, 'docente@institucion.edu.mx'],
+  ['C', 'N1', 'Cubículos de estudio', 0, 0, 100, 0, 'sin conexión', 1, 3, 'docente@institucion.edu.mx', 'Access point Wi-Fi'],
+  ['D', 'N2', 'Cafetería', 175, 44, 0, 2.4, '4g', 0, 12, 'alumno@institucion.edu.mx'],
+  ['A', 'PB', 'Servicios Escolares', 48, 11, 0, 25.3, 'wifi', 0, 20, 'admin@institucion.edu.mx']
+];
+
 function mensajeEstado(estado, tecnicoNombre, motivo) {
   return ({
     'Asignado':   `Tu reporte fue asignado a ${tecnicoNombre}.`,
@@ -101,8 +128,12 @@ function sembrar() {
   const hash = bcrypt.hashSync(PASSWORD_DEMO, 10);
 
   transaccion(db => {
+    // La bitácora registra la carga inicial con fechas en el pasado, como si se hubiera capturado en su momento
+    const ctx = (quien, modulo, ms) => bitacora.establecer(db, quien, modulo, fecha(ms));
+    ctx({ id: null, nombre: 'Carga inicial del sistema' }, 'semilla', ahora - 400 * HORA);
+
     // Usuarios
-    const insUsuario = db.prepare('INSERT INTO usuarios (correo, nombre, rol, password_hash, avatar, creado_en) VALUES (?, ?, ?, ?, ?, ?)');
+    const insUsuario = db.prepare("INSERT INTO usuarios (correo, nombre, rol, password_hash, avatar, registrado_por, creado_en) VALUES (?, ?, ?, ?, ?, 'semilla', ?)");
     const usuarios = {};
     for (const [correo, nombre, rol, avatar] of USUARIOS) {
       const r = insUsuario.run(correo, nombre, rol, hash, avatar, fecha(ahora - 400 * HORA));
@@ -135,25 +166,37 @@ function sembrar() {
     const admin = usuarios['admin@institucion.edu.mx'];
 
     const insTicket = db.prepare(`INSERT INTO tickets
-      (solicitante_id, espacio_id, activo, categoria_id, severidad, descripcion, estado, creado_en, actualizado_en)
-      VALUES (?, ?, ?, ?, ?, ?, 'Abierto', ?, ?)`);
+      (solicitante_id, espacio_id, activo, categoria_id, severidad, descripcion, foto, origen, estado, creado_en, actualizado_en)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'Abierto', ?, ?)`);
     const insHist = db.prepare('INSERT INTO historial_estados (ticket_id, estado_anterior, estado_nuevo, usuario_id, usuario_nombre, nota, fecha) VALUES (?, ?, ?, ?, ?, ?, ?)');
     const insNotif = db.prepare('INSERT INTO notificaciones (usuario_id, ticket_id, titulo, mensaje, leida, creada_en) VALUES (?, ?, ?, ?, ?, ?)');
     const insRes = db.prepare('INSERT INTO resoluciones (ticket_id, tecnico_id, foto, notas, materiales, resuelto_en) VALUES (?, ?, NULL, ?, ?, ?)');
     const updTicket = db.prepare('UPDATE tickets SET estado = ?, tecnico_id = COALESCE(?, tecnico_id), motivo_rechazo = COALESCE(?, motivo_rechazo), actualizado_en = ? WHERE id = ?');
     const leerFolio = db.prepare('SELECT folio FROM tickets WHERE id = ?');
 
-    TICKETS.forEach((p, i) => {
-      const [ed, niv, esp, act, cat, sev, desc, final, hAtras, hRes, tec] = p;
+    const NOTA = {
+      formulario: 'Incidencia registrada por el solicitante',
+      reporte_visual: 'Reporte visual con anotaciones sobre la fotografía',
+      sin_conexion: 'Reporte capturado sin conexión y sincronizado al volver la red',
+      auditoria_red: 'Ticket generado desde la auditoría de red Wi-Fi'
+    };
+    const MODULO = { formulario: 'formulario', reporte_visual: 'reporte-visual', sin_conexion: 'sin-conexion', auditoria_red: 'auditoria-red' };
+    const ticketsPorClave = {};
+
+    [...TICKETS, ...TICKETS_EQUIPO].forEach((p, i) => {
+      const [ed, niv, esp, act, cat, sev, desc, final, hAtras, hRes, tec, origen = 'formulario', foto = null, solicitante = null] = p;
       const creado = ahora - hAtras * HORA;
-      const sol = solicitantes[i % solicitantes.length];
+      const sol = solicitante ? usuarios[solicitante] : solicitantes[i % solicitantes.length];
       const tecnico = tec != null ? tecnicos[tec] : null;
-      const id = Number(insTicket.run(sol.id, espacios[`${ed}|${niv}|${esp}`], act, categorias[cat], sev, desc, fecha(creado), fecha(creado)).lastInsertRowid);
+      ctx(sol, MODULO[origen], creado);
+      const id = Number(insTicket.run(sol.id, espacios[`${ed}|${niv}|${esp}`], act, categorias[cat], sev, desc, foto, origen, fecha(creado), fecha(creado)).lastInsertRowid);
       const folio = leerFolio.get(id).folio;
-      insHist.run(id, null, 'Abierto', sol.id, sol.nombre, 'Incidencia registrada por el solicitante', fecha(creado));
+      ticketsPorClave[`${ed}|${niv}|${esp}|${act}`] = id;
+      insHist.run(id, null, 'Abierto', sol.id, sol.nombre, NOTA[origen], fecha(creado));
 
       let estado = 'Abierto';
       const paso = (nuevo, at, quien, nota, extra = {}) => {
+        ctx(quien, quien.rol === 'admin' ? 'administracion' : 'app', at);
         insHist.run(id, estado, nuevo, quien.id, quien.nombre, nota, fecha(at));
         updTicket.run(nuevo, extra.tecnico ?? null, extra.motivo ?? null, fecha(at), id);
         insNotif.run(sol.id, id, `${folio} · ${nuevo}`, mensajeEstado(nuevo, tecnico?.nombre, extra.motivo), ahora - at > 12 * HORA ? 1 : 0, fecha(at));
@@ -169,12 +212,39 @@ function sembrar() {
         if (['En Proceso', 'Resuelto', 'Cerrado'].includes(final)) paso('En Proceso', creado + lapso * 0.35 * HORA, tecnico, 'Inicio de labores en sitio');
         if (['Resuelto', 'Cerrado'].includes(final)) {
           const at = creado + hRes * HORA;
+          ctx(tecnico, 'app', at);
           insRes.run(id, tecnico.id, SOLUCION[cat][0], SOLUCION[cat][1], fecha(at));
           paso('Resuelto', at, tecnico, 'Trabajo concluido con evidencia');
         }
         if (final === 'Cerrado') paso('Cerrado', creado + (hRes + 2) * HORA, admin, 'Validado y cerrado por administración');
       }
     });
+
+    // Auditorías de red Wi-Fi (módulo de Carlos): mediciones con su semáforo y, si están degradadas, su ticket
+    const insRed = db.prepare(`INSERT INTO auditorias_red
+      (usuario_id, espacio_id, ubicacion, latencia_ms, jitter_ms, perdida_pct, velocidad_mbps, tipo_conexion, sin_conexion,
+       apt_videollamadas, apt_git, apt_descargas, degradada, ticket_id, medido_en, creado_en)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
+    for (const [ed, niv, esp, lat, jit, per, vel, tipo, sinRed, hAtras, quien, ticketDe] of AUDITORIAS) {
+      const at = ahora - hAtras * HORA;
+      const u = usuarios[quien];
+      const apt = red.evaluar({ latencia_ms: lat, jitter_ms: jit, perdida_pct: per, velocidad_mbps: vel, sin_conexion: sinRed });
+      const ticketId = ticketDe ? ticketsPorClave[`${ed}|${niv}|${esp}|${ticketDe}`] ?? null : null;
+      ctx(u, 'auditoria-red', at - (ticketId ? 60000 : 0));
+      const nivel = db.prepare('SELECT clave FROM niveles WHERE id = (SELECT nivel_id FROM espacios WHERE id = ?)').get(espacios[`${ed}|${niv}|${esp}`]);
+      insRed.run(u.id, espacios[`${ed}|${niv}|${esp}`], `Edif. ${ed} · ${nivel.clave} · ${esp}`, sinRed ? null : lat, sinRed ? null : jit,
+        sinRed ? 100 : per, sinRed ? 0 : vel, sinRed ? 'sin conexión' : tipo, sinRed ? 1 : 0,
+        apt.videollamadas.etiqueta, apt.git.etiqueta, apt.descargas.etiqueta, apt.degradada ? 1 : 0, ticketId, fecha(at), fecha(at));
+    }
+
+    // Enlace de registro de demostración: el equipo lo comparte en la exposición (el admin lo puede desactivar)
+    ctx(admin, 'administracion', ahora - 30 * HORA);
+    db.prepare("INSERT INTO invitaciones (codigo, rol, creada_por, usos, max_usos, expira_en, creada_en) VALUES ('EXPO-2026', 'admin', ?, 0, 200, ?, ?)")
+      .run(admin.id, fecha(ahora + 60 * 24 * HORA), fecha(ahora - 30 * HORA));
+    db.prepare("INSERT INTO invitaciones (codigo, rol, creada_por, usos, max_usos, expira_en, creada_en) VALUES ('ALUM-2026', 'solicitante', ?, 0, 500, ?, ?)")
+      .run(admin.id, fecha(ahora + 60 * 24 * HORA), fecha(ahora - 30 * HORA));
+
+    bitacora.establecer(db, { id: null, nombre: 'Sistema' }, 'sistema');
   });
 }
 

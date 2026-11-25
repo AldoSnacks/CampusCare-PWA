@@ -1,0 +1,93 @@
+[
+  {
+    "id": "E01",
+    "modulo": "Bienvenida",
+    "prueba": "La portada muestra contexto, usuarios finales, módulos, alertas y QR de registro",
+    "resultado": "Aprobada",
+    "detalle": ""
+  },
+  {
+    "id": "E02",
+    "modulo": "Registro por enlace",
+    "prueba": "El enlace EXPO-2026 registra desde el teléfono con rol de administrador",
+    "resultado": "Aprobada",
+    "detalle": "rol: Administrador"
+  },
+  {
+    "id": "E03",
+    "modulo": "Interfaz móvil",
+    "prueba": "El menú \"Más\" da acceso a todas las secciones del rol desde el teléfono",
+    "resultado": "Aprobada",
+    "detalle": "13 secciones"
+  },
+  {
+    "id": "E04",
+    "modulo": "Interfaz móvil",
+    "prueba": "Quien entró por el enlace puede crear usuarios",
+    "resultado": "Aprobada",
+    "detalle": ""
+  },
+  {
+    "id": "E05",
+    "modulo": "Reporte visual",
+    "prueba": "Se dibuja sobre la foto, se genera la orden y se envía con folio real",
+    "resultado": "Aprobada",
+    "detalle": "CC-1028 · reporte_visual"
+  },
+  {
+    "id": "E06",
+    "modulo": "Auditoría Wi-Fi",
+    "prueba": "Mide latencia, jitter y velocidad y guarda la medición",
+    "resultado": "Aprobada",
+    "detalle": "9 ms · 408.16 Mbps · Apto"
+  },
+  {
+    "id": "E07",
+    "modulo": "Sin conexión",
+    "prueba": "Sin red: auditoría, reporte nuevo (folio LOCAL) y edición quedan en la cola",
+    "resultado": "Aprobada",
+    "detalle": "LOCAL-0001 · cola ['auditoria', 'crear', 'editar']"
+  },
+  {
+    "id": "E08",
+    "modulo": "Sin conexión",
+    "prueba": "Al volver la red la cola se sincroniza y recibe folios reales",
+    "resultado": "Aprobada",
+    "detalle": "red: CC-1029 (Crítica) · reporte: CC-1030"
+  },
+  {
+    "id": "E09",
+    "modulo": "Auditoría Wi-Fi",
+    "prueba": "La zona muerta se escaló a Red/TI con severidad Crítica",
+    "resultado": "Aprobada",
+    "detalle": ""
+  },
+  {
+    "id": "E10",
+    "modulo": "Sin conexión",
+    "prueba": "Entra sin internet con la contraseña verificada por PBKDF2 y ve sus datos guardados",
+    "resultado": "Aprobada",
+    "detalle": "16 reportes desde la copia local"
+  },
+  {
+    "id": "E11",
+    "modulo": "Historial de registros",
+    "prueba": "La bitácora muestra altas, ediciones y bajas por módulo del equipo",
+    "resultado": "Aprobada",
+    "detalle": "{'INSERT': 120, 'UPDATE': 63, 'DELETE': 0} · módulos ['semilla', 'app', 'administracion', 'formulario', 'auditoria-red', 'reporte-visual', 'sin-conexion', 'enlace']"
+  },
+  {
+    "id": "E12",
+    "modulo": "Alertas",
+    "prueba": "Un reporte Crítico llega al administrador como alerta crítica en tiempo real",
+    "resultado": "Aprobada",
+    "detalle": "Alerta crítica CC-1031"
+  },
+  {
+    "id": "E13",
+    "modulo": "General",
+    "prueba": "Sin errores de JavaScript en las páginas",
+    "resultado": "Aprobada",
+    "detalle": ""
+  }
+]

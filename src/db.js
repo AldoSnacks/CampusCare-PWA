@@ -45,6 +45,18 @@ function migrar(d) {
     if (!columnas.includes(col)) d.exec(`ALTER TABLE tickets ADD COLUMN ${col} ${tipo}`);
   }
   d.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_tickets_cliente ON tickets(cliente_id) WHERE cliente_id IS NOT NULL');
+
+  // Versión integrada del equipo: origen de cada reporte y forma en que se dio de alta cada cuenta
+  if (!columnas.includes('origen')) {
+    d.exec("ALTER TABLE tickets ADD COLUMN origen TEXT NOT NULL DEFAULT 'formulario' CHECK (origen IN ('formulario', 'reporte_visual', 'auditoria_red', 'sin_conexion'))");
+  }
+  const colsUsuarios = d.prepare('PRAGMA table_info(usuarios)').all().map(c => c.name);
+  if (!colsUsuarios.includes('registrado_por')) d.exec("ALTER TABLE usuarios ADD COLUMN registrado_por TEXT NOT NULL DEFAULT 'administrador'");
+  const colsContexto = d.prepare('PRAGMA table_info(contexto)').all().map(c => c.name);
+  if (!colsContexto.includes('fecha')) d.exec('ALTER TABLE contexto ADD COLUMN fecha TEXT');
+
+  // Triggers de la bitácora (qué se agregó, editó o borró)
+  require('./bitacora').instalar(d);
 }
 
 function conexion() {

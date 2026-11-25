@@ -25,7 +25,7 @@ def registrar(pid, criterio, descripcion, ok, detalle='', estado=None):
 
 
 async def entrar(pg, correo):
-    await pg.goto(BASE + '/')
+    await pg.goto(BASE + '/entrar')
     await pg.wait_for_selector('#loginEmail')
     await pg.fill('#loginEmail', correo)
     await pg.fill('#loginPass', 'Campus2026')
@@ -77,7 +77,7 @@ async def main():
                   f"errores de manifest: {len(errores_man)}; errores de instalación de la app: {len(errores_inst)} {errores_inst}")
         sw = await pg.evaluate("navigator.serviceWorker.ready.then(r => ({activo: !!r.active, scope: r.scope}))")
         cachés = await pg.evaluate("caches.keys()")
-        shell = await pg.evaluate("caches.open('campuscare-app-v3.0.0').then(c => c.keys()).then(k => k.length)")
+        shell = await pg.evaluate("caches.keys().then(n => caches.open(n.find(x => x.startsWith('campuscare-app-')))).then(c => c.keys()).then(k => k.length)")
         registrar('E02', 'Service Worker / Caché', 'El service worker se registra y precarga el app shell',
                   sw['activo'] and shell >= 13, f"scope {sw['scope']}; cachés: {', '.join(cachés)}; archivos del app shell: {shell}")
 
@@ -139,19 +139,20 @@ async def main():
         pendientes = await pg.evaluate("LocalDB.todos('pendientes').then(r => r.length)")
         await pg.screenshot(path=str(CAPT / '06_offline_pendiente.png'))
         registrar('E09', 'Datos offline', 'Sin internet el reporte se guarda en la cola local (IndexedDB)', pendientes == 1, f"{pendientes} reporte(s) en la cola")
-        desde_cache = await pg.evaluate("fetch('/api/tickets', {headers: {Authorization: 'Bearer ' + Auth.token()}}).then(r => r.headers.get('X-Desde-Cache'))")
+        desde_cache = await pg.evaluate("fetch('/api/tickets?_u=' + Auth.sesion().id, {headers: {Authorization: 'Bearer ' + Auth.token()}}).then(r => r.headers.get('X-Desde-Cache'))")
         registrar('E10', 'Funcionamiento sin conexión', 'Sin internet la API responde con la última copia guardada por el service worker',
                   desde_cache == 'service-worker', f"cabecera X-Desde-Cache: {desde_cache}")
         await pg.reload(); await pg.wait_for_timeout(1500)
         abre = await pg.evaluate("!document.querySelector('#app').hidden || !document.querySelector('#login').hidden")
         registrar('E11', 'Funcionamiento sin conexión', 'La aplicación vuelve a abrir sin internet desde la caché', abre, 'recarga completa en modo avión')
         await pg.screenshot(path=str(CAPT / '07_offline_recarga.png'))
-        antes = await pg.evaluate("DB.tickets.length")
+        # La interfaz optimista ya muestra el reporte con folio LOCAL; se cuentan solo los del servidor
+        antes = await pg.evaluate("DB.tickets.filter(t => !t.local).length")
         await ctx.set_offline(False)
         for _ in range(40):  # hasta 20 s para que el service worker envíe la cola
             await pg.wait_for_timeout(500)
             cola = await pg.evaluate("LocalDB.todos('pendientes').then(r => r.length)")
-            despues = await pg.evaluate("DB.tickets.length")
+            despues = await pg.evaluate("DB.tickets.filter(t => !t.local).length")
             if cola == 0 and despues == antes + 1:
                 break
         await pg.wait_for_timeout(800)

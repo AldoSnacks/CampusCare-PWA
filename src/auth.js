@@ -4,6 +4,7 @@
 'use strict';
 const jwt = require('jsonwebtoken');
 const { conexion } = require('./db');
+const bitacora = require('./bitacora');
 
 const SECRETO = process.env.JWT_SECRET || 'campuscare-secreto-de-desarrollo-cambiar-en-produccion';
 const DOMINIO = '@institucion.edu.mx';
@@ -44,6 +45,8 @@ function requiereSesion(req, res, next) {
   if (!usuario.activo) return next(new ErrorHttp(401, 'Tu cuenta fue desactivada por el administrador.'));
 
   req.usuario = usuario;
+  // Los triggers de la bitácora leen quién hace la petición y desde qué módulo
+  bitacora.establecer(conexion(), usuario, req.modulo || 'app');
   next();
 }
 

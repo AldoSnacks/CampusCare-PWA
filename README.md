@@ -18,6 +18,25 @@ Funciona en la computadora y en el celular, se puede **instalar**, trabaja **sin
 | Seguridad | JWT (sesión de 8 h) y contraseñas cifradas con bcrypt |
 | Tiempo real | Server-Sent Events (avisos instantáneos entre usuarios) |
 
+## Proyecto integrado del equipo
+
+Las cuatro propuestas del equipo funcionan dentro de esta misma aplicación, con el mismo diseño y la misma base de datos:
+
+| Integrante | Módulo | Dónde está |
+|---|---|---|
+| Aldo Misael Leal Palafox | Mapa de calor y analítica (base de la app) | Vista *Métricas y analítica*, `/estado`, `src/vistas.js` |
+| Roger Alexis Atenco Guerrero | Reporte visual: anotar la foto (flecha, círculo, lápiz y nota) y generar la orden de trabajo | Vista *Reporte visual*, `public/equipo/reporte-visual.js` |
+| Carlos Manuel Ojeda Hernández | Auditoría de red Wi-Fi con semáforo de aptitud académica y modo zona muerta (escala a ticket Red/TI) | Vista *Auditoría de red Wi-Fi*, `public/equipo/auditoria-red.js`, `src/red.js`, `routes/red.js`, tabla `auditorias_red` |
+| Adrián Olmedo Arango | CampusCare sin conexión: inicio de sesión sin red (PBKDF2), copia por usuario y cola de cambios con folio provisional | Vista *Modo sin conexión*, `public/equipo/sin-conexion.js`, `public/sw.js` |
+
+Además:
+
+- **Página de bienvenida** (`/` o `/bienvenida`): portada con contexto general, usuarios finales, módulos del equipo, alertas y QR de registro.
+- **Registro por enlace o QR** (`/registro?codigo=...`): quien entra desde su teléfono recibe el rol de la invitación y la interfaz completa de ese rol. Vista *Invitar por enlace o QR*; tabla `invitaciones`. Enlaces de demostración: `EXPO-2026` (administrador) y `ALUM-2026` (alumno/docente).
+- **Historial de registros**: triggers de SQLite (`src/bitacora.js`) anotan en la tabla `bitacora` cada alta, edición y borrado, con el antes y el después, la persona y el módulo desde el que se hizo.
+- **Alertas críticas** en la web y en el teléfono para reportes de severidad Crítica y zonas muertas de Wi-Fi.
+- En el teléfono, el botón **Más** de la barra inferior abre todas las secciones del rol.
+
 ## Características PWA
 
 | Requisito de la actividad | Dónde está |
@@ -96,7 +115,7 @@ Contraseña de todas: **`Campus2026`**
 | Personal de Mantenimiento | tecnico@institucion.edu.mx · tecnico2@ · tecnico3@ |
 | Administrador | admin@institucion.edu.mx |
 
-También puedes crear cuentas nuevas con **"Crear cuenta institucional"** en la pantalla de inicio de sesión.
+También puedes crear cuentas nuevas con **"Crear cuenta"** en la bienvenida o con un enlace de invitación (`/registro?codigo=EXPO-2026` da rol de administrador). En el registro y el inicio de sesión basta con escribir el usuario: el dominio `@institucion.edu.mx` se completa solo.
 
 ---
 
@@ -218,12 +237,16 @@ CampusCare-PWA/
 │   ├── vistas.js          Vistas generadas en el servidor (SSR) y mapa de calor
 │   ├── push.js            Notificaciones push (VAPID)
 │   ├── fotos.js           Guardado de fotografías
+│   ├── bitacora.js        Triggers del historial de cambios (agregado, editado, borrado)
+│   ├── red.js             Auditoría Wi-Fi: semáforo y escalamiento a Red/TI
+│   ├── qr.js              Códigos QR en SVG (src/vendor/QRCode, licencia MIT)
 │   └── eventos.js         Tiempo real (Server-Sent Events)
-├── routes/                Rutas de la API (auth, tickets, catálogo, usuarios, notificaciones, admin, push)
+├── routes/                Rutas de la API (auth, tickets, catálogo, usuarios, notificaciones, admin, push, red, invitaciones, bitácora)
 ├── public/
 │   ├── index.html         Interfaz (vistas del cliente)
 │   ├── app.js, admin.js   Lógica de la aplicación
 │   ├── pwa.js, pwa.css    Funciones PWA: IndexedDB, offline, push, cámara, GPS, vibración
+│   ├── equipo/            Módulos del equipo: integracion, sin-conexion, reporte-visual, auditoria-red, historial, bienvenida y equipo.css
 │   ├── sw.js              Service worker
 │   ├── manifest.webmanifest, offline.html, ssr.css
 │   ├── icons/             Iconos de instalación
@@ -235,8 +258,9 @@ CampusCare-PWA/
 ## 7. Pruebas
 
 ```
-npm test                         # 20 pruebas del servidor (node:test)
-python e2e/pwa_e2e.py http://localhost:3000   # 19 pruebas de la PWA en Chromium (requiere: pip install playwright)
+npm test                         # 30 pruebas del servidor (node:test)
+python e2e/pwa_e2e.py http://localhost:3000      # 19 pruebas de la PWA en Chromium (requiere: pip install playwright)
+python e2e/equipo_e2e.py http://localhost:3000   # 13 pruebas de los módulos del equipo
 ```
 
 Las pruebas E2E abren Chromium, simulan la cámara con `e2e/camara.y4m` y el GPS con coordenadas fijas, y guardan capturas en `e2e/capturas/` y el resultado en `e2e/resultados.json`.

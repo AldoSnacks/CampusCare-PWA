@@ -27,9 +27,21 @@ const DESCRIPCIONES = {
   historial_estados: 'Trazabilidad de cada cambio de estado.',
   notificaciones: 'Avisos enviados a cada usuario.',
   accesos: 'Bitácora de inicios de sesión y registros de cuenta.',
+  auditorias_red: 'Mediciones de la auditoría Wi-Fi con su semáforo de aptitud (módulo de Carlos Ojeda).',
+  invitaciones: 'Enlaces y códigos QR para registrarse desde el teléfono con un rol definido.',
+  bitacora: 'Historial automático de cambios: qué se agregó, editó o borró, quién y desde qué módulo (solo lectura).',
+  suscripciones_push: 'Navegadores y teléfonos suscritos a las notificaciones push.',
+  contexto: 'Uso interno: usuario y módulo de la petición en curso para la bitácora (solo lectura).',
   vista_reporte_tickets: 'Vista de solo lectura que une tickets con su ubicación, técnico y cumplimiento de SLA.'
 };
 const ORDEN = Object.keys(DESCRIPCIONES);
+
+/* Tablas que el explorador muestra pero no deja modificar */
+const SOLO_LECTURA = ['bitacora', 'contexto'];
+function editable(o) {
+  if (o.type === 'view') throw new ErrorHttp(400, 'Las vistas son de solo lectura.');
+  if (SOLO_LECTURA.includes(o.name)) throw new ErrorHttp(400, 'La bitácora es de solo lectura: se llena sola con cada cambio.');
+}
 
 /* Solo se permiten tablas y vistas que existen en la base */
 function objeto(nombre) {
@@ -152,7 +164,7 @@ router.get('/tablas/:tabla/opciones', (req, res) => {
 /* POST /api/admin/tablas/:tabla — insertar registro */
 router.post('/tablas/:tabla', (req, res) => {
   const o = objeto(req.params.tabla);
-  if (o.type === 'view') throw new ErrorHttp(400, 'Las vistas son de solo lectura.');
+  editable(o);
   const cols = columnas(o.name);
   const valores = prepararValores(o.name, cols, req.body.valores || {}, true);
   const nombres = Object.keys(valores);
@@ -166,7 +178,7 @@ router.post('/tablas/:tabla', (req, res) => {
 /* PUT /api/admin/tablas/:tabla/:id — editar registro */
 router.put('/tablas/:tabla/:id', (req, res) => {
   const o = objeto(req.params.tabla);
-  if (o.type === 'view') throw new ErrorHttp(400, 'Las vistas son de solo lectura.');
+  editable(o);
   const cols = columnas(o.name);
   const pk = llavePrimaria(cols);
   const valores = prepararValores(o.name, cols, req.body.valores || {}, false);
@@ -182,7 +194,7 @@ router.put('/tablas/:tabla/:id', (req, res) => {
 /* DELETE /api/admin/tablas/:tabla/:id — eliminar registro */
 router.delete('/tablas/:tabla/:id', (req, res) => {
   const o = objeto(req.params.tabla);
-  if (o.type === 'view') throw new ErrorHttp(400, 'Las vistas son de solo lectura.');
+  editable(o);
   const pk = llavePrimaria(columnas(o.name));
   if (o.name === 'usuarios' && Number(req.params.id) === req.usuario.id) throw new ErrorHttp(400, 'No puedes eliminar tu propia cuenta.');
   const r = conexion().prepare(`DELETE FROM ${ident(o.name)} WHERE ${pk === 'rowid' ? 'rowid' : ident(pk)} = ?`).run(req.params.id);

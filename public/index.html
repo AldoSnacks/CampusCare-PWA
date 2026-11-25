@@ -19,15 +19,157 @@
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="pwa.css">
+  <link rel="stylesheet" href="equipo/equipo.css">
 </head>
 <body>
   <!-- Aviso de conexión (PWA: modo sin conexión) -->
   <div id="netBanner" class="net-banner" role="status" hidden></div>
 
   <!-- =====================================================
+       PÁGINA DE BIENVENIDA: portada y contexto del proyecto
+       ===================================================== -->
+  <section id="bienvenida" class="bienvenida">
+    <header class="bv-nav">
+      <a class="brand" href="/bienvenida" data-action="bv-inicio">
+        <span class="logo-box"><span class="logo-fallback">CC</span><img src="img/logo.png" alt="Logo institucional" onerror="this.remove()"></span>
+        <span class="brand-text"><strong>CampusCare</strong><small>Mantenimiento universitario</small></span>
+      </a>
+      <nav class="bv-links" aria-label="Secciones de la bienvenida">
+        <a href="#bv-contexto">Contexto</a><a href="#bv-usuarios">Usuarios</a><a href="#bv-modulos">Módulos</a><a href="#bv-alertas">Alertas</a><a href="#bv-registro">Registro</a>
+      </nav>
+      <div class="bv-nav-acciones">
+        <button type="button" class="btn btn-ghost btn-sm" data-action="bv-entrar" data-bv-entrar>Entrar</button>
+        <button type="button" class="btn btn-primary btn-sm" data-action="bv-registro">Crear cuenta</button>
+      </div>
+    </header>
+
+    <div class="bv-portada">
+      <div class="hero-pattern"></div>
+      <div class="bv-portada-in">
+        <div class="bv-portada-txt">
+          <span class="pill pill-glass">Aplicación Web Progresiva · Proyecto integrador del equipo</span>
+          <h1>Bienvenido a CampusCare. <span class="hl">Un campus que se reporta, se atiende y se mide.</span></h1>
+          <p>Plataforma para que alumnos, docentes, personal de mantenimiento y administración reporten fallas de infraestructura con fotografía y ubicación, sigan su avance en tiempo real y consulten la evidencia de cada solución, desde la computadora o el teléfono.</p>
+          <div class="btn-row">
+            <button type="button" class="btn btn-light btn-lg" data-action="bv-entrar" data-bv-entrar><span data-icon="arrow"></span> Entrar a la aplicación</button>
+            <button type="button" class="btn btn-glass btn-lg" data-action="bv-registro"><span data-icon="user"></span> Crear cuenta</button>
+            <a class="btn btn-glass btn-lg" href="/estado"><span data-icon="chart"></span> Estado del campus</a>
+          </div>
+          <div class="hero-stats">
+            <div><strong id="bvStat1">0</strong><span>reportes atendidos</span></div>
+            <div><strong id="bvStat2">0%</strong><span>dentro de SLA</span></div>
+            <div><strong id="bvStat3">4</strong><span>edificios conectados</span></div>
+          </div>
+        </div>
+        <div class="bv-telefono" aria-hidden="true">
+          <div class="bv-tel-marco"><img src="screenshots/movil.jpg" alt="" loading="lazy"></div>
+          <div class="bv-tel-aviso"><span data-icon="bell"></span><div><strong>CC-1016 · Asignado</strong><small>Tu reporte fue asignado a Ing. Carlos Méndez.</small></div></div>
+        </div>
+      </div>
+    </div>
+
+    <section id="bv-contexto" class="bv-seccion">
+      <div class="bv-titulo"><span class="kicker">Contexto general</span><h2>¿Por qué existe CampusCare?</h2>
+        <p>En la universidad las fallas de infraestructura se avisan de palabra, por mensajes o en papel. CampusCare concentra cada reporte en un solo lugar, con evidencia y tiempos de atención medibles.</p></div>
+      <div class="bv-grid-3">
+        <article class="bv-card"><span class="stat-ic"><span data-icon="alert"></span></span><h3>El problema</h3>
+          <p>Luminarias fundidas, fugas, proyectores sin imagen o Wi-Fi caído se reportan sin formato: se pierden, se duplican y nadie sabe en qué van ni cuánto tardan en resolverse.</p></article>
+        <article class="bv-card"><span class="stat-ic"><span data-icon="camera"></span></span><h3>La solución</h3>
+          <p>Una aplicación instalable que registra cada incidencia con foto, ubicación del catálogo (edificio, nivel y espacio) y severidad con su tiempo máximo de atención (SLA).</p></article>
+        <article class="bv-card"><span class="stat-ic"><span data-icon="chart"></span></span><h3>El resultado</h3>
+          <p>Trazabilidad completa de cada ticket, evidencia del trabajo terminado, métricas de MTTR y SLA, y un mapa de calor para decidir dónde invertir primero.</p></article>
+      </div>
+      <ol class="bv-flujo">
+        <li><span data-icon="plus"></span><strong>Reporta</strong><small>Foto, ubicación y severidad</small></li>
+        <li><span data-icon="user"></span><strong>Asigna</strong><small>La administración elige técnico</small></li>
+        <li><span data-icon="wrench"></span><strong>Atiende</strong><small>El técnico inicia en sitio</small></li>
+        <li><span data-icon="checkCircle"></span><strong>Resuelve</strong><small>Con evidencia obligatoria</small></li>
+        <li><span data-icon="shield"></span><strong>Cierra y mide</strong><small>SLA, MTTR y mapa de calor</small></li>
+      </ol>
+    </section>
+
+    <section id="bv-usuarios" class="bv-seccion bv-suave">
+      <div class="bv-titulo"><span class="kicker">Usuarios finales</span><h2>¿Quién usa CampusCare?</h2>
+        <p>Cada persona entra con su correo institucional y ve solo lo que le corresponde a su rol.</p></div>
+      <div class="bv-grid-4">
+        <article class="bv-usuario"><img src="img/usuario-estudiantes.jpg" alt="Alumnos en el aula" loading="lazy"><div><span class="bv-rol">Alumno / Docente</span><h3>Alumnos</h3>
+          <ul><li>Reportan fallas de su aula o laboratorio</li><li>Señalan el problema sobre la foto</li><li>Siguen el avance y confirman el cierre</li></ul></div></article>
+        <article class="bv-usuario"><img src="img/usuario-docente.jpg" alt="Docente" loading="lazy"><div><span class="bv-rol">Alumno / Docente</span><h3>Docentes</h3>
+          <ul><li>Avisan lo que impide dar clase</li><li>Miden si el Wi-Fi sirve para videollamadas</li><li>Reciben avisos en el teléfono</li></ul></div></article>
+        <article class="bv-usuario"><img src="img/usuario-mantenimiento.jpg" alt="Técnico de mantenimiento" loading="lazy"><div><span class="bv-rol">Mantenimiento</span><h3>Personal técnico</h3>
+          <ul><li>Reciben órdenes priorizadas por severidad</li><li>Trabajan aunque no haya señal</li><li>Cierran con foto, notas y materiales</li></ul></div></article>
+        <article class="bv-usuario"><img src="img/usuario-administracion.jpg" alt="Equipo de administración" loading="lazy"><div><span class="bv-rol">Administrador</span><h3>Administración</h3>
+          <ul><li>Asignan técnicos y validan cierres</li><li>Consultan métricas y mapa de calor</li><li>Gestionan usuarios, catálogo y base de datos</li></ul></div></article>
+      </div>
+    </section>
+
+    <section id="bv-modulos" class="bv-seccion">
+      <div class="bv-titulo"><span class="kicker">Propuestas del equipo</span><h2>Un proyecto, cuatro aportaciones</h2>
+        <p>Cada integrante propuso una mejora y todas funcionan dentro de la misma aplicación, con el mismo diseño y la misma base de datos.</p></div>
+      <div class="bv-grid-4">
+        <article class="bv-modulo" style="--img:url('/img/banner-admin.jpg')"><div class="bv-modulo-media"><span data-icon="chart"></span></div><div>
+          <span class="bv-autor">Aldo Misael Leal Palafox</span><h3>Mapa de calor y analítica</h3>
+          <p>Concentra los reportes por edificio, categoría y severidad para descubrir dónde se repiten las fallas y medir el cumplimiento de SLA.</p></div></article>
+        <article class="bv-modulo" style="--img:url('/img/demo-visual-1.jpg')"><div class="bv-modulo-media"><span data-icon="edit"></span></div><div>
+          <span class="bv-autor">Roger Alexis Atenco Guerrero</span><h3>Reporte visual</h3>
+          <p>Quien reporta dibuja sobre la foto (flecha, círculo, lápiz y nota) y se genera una orden de trabajo con la evidencia anotada.</p></div></article>
+        <article class="bv-modulo" style="--img:url('/img/cat-red.jpg')"><div class="bv-modulo-media"><span data-icon="wifi"></span></div><div>
+          <span class="bv-autor">Carlos Manuel Ojeda Hernández</span><h3>Auditoría de red Wi-Fi</h3>
+          <p>Mide latencia, jitter, pérdida y velocidad, las traduce a un semáforo de aptitud académica y escala las zonas muertas a Red/TI.</p></div></article>
+        <article class="bv-modulo" style="--img:url('/img/edificio-c.jpg')"><div class="bv-modulo-media"><span data-icon="database"></span></div><div>
+          <span class="bv-autor">Adrián Olmedo Arango</span><h3>CampusCare sin conexión</h3>
+          <p>Permite entrar, consultar y registrar cambios sin internet; la cola se sincroniza en orden cuando vuelve la conexión.</p></div></article>
+      </div>
+      <div class="bv-extra">
+        <div><span data-icon="refresh"></span><p><strong>Historial de registros.</strong> La base de datos anota sola cada alta, edición y borrado, con la persona y el módulo que lo hizo.</p></div>
+        <div><span data-icon="link"></span><p><strong>Registro por enlace o QR.</strong> Cualquier persona entra desde su teléfono con la interfaz completa de su rol.</p></div>
+      </div>
+    </section>
+
+    <section id="bv-alertas" class="bv-seccion bv-suave">
+      <div class="bv-titulo"><span class="kicker">Alertas y notificaciones</span><h2>Te avisamos en la web y en tu teléfono</h2>
+        <p>Cada cambio de estado llega al instante a las personas involucradas.</p></div>
+      <div class="bv-grid-3">
+        <article class="bv-card"><span class="stat-ic"><span data-icon="grid"></span></span><h3>En la web</h3>
+          <p>Contador en la campana, aviso emergente en tiempo real y una bandeja de notificaciones guardada en la base de datos.</p></article>
+        <article class="bv-card"><span class="stat-ic"><span data-icon="bell"></span></span><h3>En el smartphone</h3>
+          <p>Notificaciones push con vibración aunque la aplicación esté cerrada. Instálala desde el navegador para usarla como app.</p></article>
+        <article class="bv-card bv-card-alerta"><span class="stat-ic"><span data-icon="alert"></span></span><h3>Alertas críticas</h3>
+          <p>Los reportes de severidad Crítica y las zonas muertas de Wi-Fi llegan como alerta: barra en pantalla, vibración larga y aviso que no se cierra solo.</p></article>
+      </div>
+    </section>
+
+    <section id="bv-registro" class="bv-seccion">
+      <div class="bv-registro">
+        <div>
+          <span class="kicker">Regístrate desde tu teléfono</span>
+          <h2>Escanea el código y empieza a reportar</h2>
+          <ol class="bv-pasos">
+            <li><b>1</b><span>Abre la cámara de tu teléfono y escanea el código QR, o abre el enlace.</span></li>
+            <li><b>2</b><span>Crea tu cuenta con tu correo <code>@institucion.edu.mx</code>.</span></li>
+            <li><b>3</b><span>Usa la misma aplicación que en la computadora e instálala en tu pantalla de inicio.</span></li>
+          </ol>
+          <p class="small muted">La administración puede generar enlaces con otro rol (mantenimiento o administrador) desde la sección <b>Invitar por enlace o QR</b>.</p>
+        </div>
+        <div class="bv-qr">
+          <img id="bvQR" alt="Código QR para registrarse en CampusCare" width="220" height="220">
+          <div class="bv-qr-link"><code id="bvLink">/registro</code><button type="button" class="btn btn-ghost btn-sm" data-action="bv-copiar"><span data-icon="link"></span> Copiar</button></div>
+        </div>
+      </div>
+    </section>
+
+    <footer class="bv-pie">
+      <div class="brand"><span class="logo-box"><span class="logo-fallback">CC</span><img src="img/logo.png" alt="" onerror="this.remove()"></span>
+        <span class="brand-text"><strong>CampusCare</strong><small>Proyecto académico · Aplicaciones Web Progresivas</small></span></div>
+      <p><b>Equipo:</b> Roger Alexis Atenco Guerrero · Aldo Misael Leal Palafox · Carlos Manuel Ojeda Hernández · Adrián Olmedo Arango</p>
+      <p class="small"><a class="link" href="/estado">Estado del campus</a> · <button type="button" class="link" data-action="bv-entrar">Entrar</button> · <button type="button" class="link" data-action="bv-registro">Crear cuenta</button></p>
+    </footer>
+  </section>
+
+  <!-- =====================================================
        PANTALLA DE INICIO DE SESIÓN (RF-01)
        ===================================================== -->
-  <section id="login" class="login">
+  <section id="login" class="login" hidden>
     <div class="login-hero">
       <div class="hero-pattern"></div>
       <div class="login-hero-inner">
@@ -106,6 +248,7 @@
         <p class="small center">¿No tienes cuenta? <button type="button" class="link" data-action="mostrar-registro">Crear cuenta institucional</button></p>
         <button type="button" class="btn btn-ghost btn-block" data-action="instalar" data-install hidden><span data-icon="download"></span> Instalar CampusCare en este dispositivo</button>
         <p class="small center"><a class="link" href="/estado">Ver el estado del campus</a> · <span class="muted">vista generada en el servidor</span></p>
+        <p class="small center"><button type="button" class="link" data-action="bv-inicio">Volver a la página de bienvenida</button></p>
       </form>
 
       <!-- REGISTRO DE CUENTA: crea un registro en la tabla "usuarios" -->
@@ -118,6 +261,8 @@
           <h2>Crear cuenta</h2>
           <p class="muted">Regístrate con tu correo institucional. Tu cuenta tendrá el rol de Alumno / Docente.</p>
         </div>
+        <input type="hidden" id="regCodigo">
+        <div id="regInvitacion" class="alert alert-info" hidden></div>
         <label class="field">
           <span>Nombre completo</span>
           <div class="input-icon"><span data-icon="user"></span><input type="text" id="regNombre" placeholder="Ej. Aldo Leal Palafox" autocomplete="name" maxlength="80" required></div>
@@ -137,6 +282,7 @@
         <div class="alert alert-error" hidden></div>
         <button class="btn btn-primary btn-block btn-lg" type="submit">Crear cuenta <span data-icon="arrow"></span></button>
         <p class="small center">¿Ya tienes cuenta? <button type="button" class="link" data-action="mostrar-login">Iniciar sesión</button></p>
+        <p class="small center"><button type="button" class="link" data-action="bv-inicio">Volver a la página de bienvenida</button></p>
       </form>
     </div>
   </section>
@@ -209,5 +355,12 @@
   <script src="app.js"></script>
   <script src="admin.js"></script>
   <script src="pwa.js"></script>
+  <!-- Módulos del equipo (se integran sobre la misma aplicación) -->
+  <script src="equipo/integracion.js"></script>
+  <script src="equipo/sin-conexion.js"></script>
+  <script src="equipo/reporte-visual.js"></script>
+  <script src="equipo/auditoria-red.js"></script>
+  <script src="equipo/historial.js"></script>
+  <script src="equipo/bienvenida.js"></script>
 </body>
 </html>

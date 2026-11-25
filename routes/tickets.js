@@ -28,6 +28,13 @@ router.post('/:folio/transicion', (req, res) => {
   res.json({ ok: true });
 });
 
+/* PATCH /api/tickets/:folio — editar descripción, severidad o activo */
+router.patch('/:folio', (req, res) => {
+  const cambio = tickets.editar(req.usuario, req.params.folio, req.body);
+  if (cambio) emitir('ticket-actualizado');
+  res.json({ ok: true, cambio });
+});
+
 /* DELETE /api/tickets/:folio — cancelar (solicitante) o eliminar (admin) */
 router.delete('/:folio', (req, res) => {
   tickets.eliminar(req.usuario, req.params.folio);

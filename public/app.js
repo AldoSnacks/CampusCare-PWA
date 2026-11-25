@@ -50,6 +50,7 @@ let SEVERIDADES = {
   'Crítica': { sla: 4,  desc: 'Riesgo para personas o suspende clases.' }
 };
 const POST_RENDER = {}; // acciones que se ejecutan después de dibujar una vista
+const VISTAS_SIN_REFRESCO = ['reportar']; // vistas con formularios que no se redibujan al llegar datos
 const ORDEN_SEV = { 'Crítica': 0, 'Media': 1, 'Baja': 2 };
 
 const ESTADOS = ['Abierto', 'Asignado', 'En Proceso', 'Resuelto', 'Cerrado', 'Rechazado'];
@@ -1107,7 +1108,7 @@ function abrirDetalle(id, refrescar = false) {
       <h4>Trazabilidad del ticket</h4>
       <ol class="timeline">${t.historial.slice().reverse().map(h => `
         <li class="tl-${slug(h.a)}"><span class="tl-dot"></span>
-          <div><strong>${h.de ? `${esc(h.de)} → ` : ''}${esc(h.a)}</strong><small>${esc(h.porNombre)} · ${fmtFecha(h.at)}</small>${h.nota ? `<p>${esc(h.nota)}</p>` : ''}</div>
+          <div><strong>${h.de && h.de !== h.a ? `${esc(h.de)} → ` : ''}${esc(h.a)}</strong><small>${esc(h.porNombre)} · ${fmtFecha(h.at)}</small>${h.nota ? `<p>${esc(h.nota)}</p>` : ''}</div>
         </li>`).join('')}</ol>
       ${acciones ? `<div class="modal-actions">${acciones}</div>` : ''}
     </div>`, true);
@@ -1488,7 +1489,7 @@ document.addEventListener('submit', async e => {
     const caja = form.querySelector('.alert-error');
     try {
       if (caja) caja.hidden = true;
-      await manejador(form);
+      await manejador(form, e);
     } catch (err) {
       if (caja) { caja.textContent = err.message; caja.hidden = false; caja.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }
       else toast('Revisa la información', err.message, 'error');
@@ -1574,7 +1575,7 @@ Bus.on('data', () => {
   if (!Auth.sesion() || $('#app').hidden) return;
   actualizarContadores();
   const escribiendo = isTyping() && $('#view').contains(document.activeElement);
-  if (state.vista !== 'reportar' && !escribiendo) renderVista();
+  if (!VISTAS_SIN_REFRESCO.includes(state.vista) && !escribiendo) renderVista();
   if (state.modal?.tipo === 'detalle') abrirDetalle(state.modal.id, true);
 });
 
@@ -1593,4 +1594,5 @@ async function iniciar() {
   const s = Auth.sesion();
   if (s) await entrarApp(s); else mostrarLogin();
 }
-iniciar();
+// Se espera a que carguen los módulos del equipo (equipo/*.js) para que registren sus vistas
+document.addEventListener('DOMContentLoaded', iniciar);

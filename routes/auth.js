@@ -6,6 +6,22 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const { conexion, fecha } = require('../src/db');
 const { firmarToken, requiereSesion, validarCorreo, ErrorHttp } = require('../src/auth');
+const bitacora = require('../src/bitacora');
+const { aMs } = require('../src/db');
+
+const ROL_TEXTO = { solicitante: 'Alumno / Docente', mantenimiento: 'Personal de mantenimiento', admin: 'Administrador' };
+
+/* Invitación vigente por código (enlace o QR) */
+function invitacion(codigo) {
+  codigo = String(codigo || '').trim().toUpperCase();
+  if (!codigo) return null;
+  const i = conexion().prepare('SELECT * FROM invitaciones WHERE codigo = ?').get(codigo);
+  if (!i) throw new ErrorHttp(404, 'El enlace de registro no existe. Pide uno nuevo a quien te lo compartió.');
+  if (!i.activa) throw new ErrorHttp(410, 'Este enlace de registro fue desactivado.');
+  if (aMs(i.expira_en) < Date.now()) throw new ErrorHttp(410, 'Este enlace de registro ya venció.');
+  if (i.usos >= i.max_usos) throw new ErrorHttp(410, 'Este enlace de registro ya alcanzó su número máximo de usos.');
+  return i;
+}
 
 const router = express.Router();
 
@@ -46,7 +62,13 @@ router.post('/login', (req, res) => {
   res.json({ token: firmarToken(u), usuario: publico(u) });
 });
 
-/* POST /api/auth/registro  { nombre, correo, password } */
+/* GET /api/auth/invitacion/:codigo — datos públicos del enlace (rol que otorga) */
+router.get('/invitacion/:codigo', (req, res) => {
+  const i = invitacion(req.params.codigo);
+  res.json({ codigo: i.codigo, rol: i.rol, rolTexto: ROL_TEXTO[i.rol], restantes: i.max_usos - i.usos, expira: aMs(i.expira_en) });
+});
+
+/* POST /api/auth/registro  { nombre, correo, password, codigo? } */
 router.post('/registro', (req, res) => {
   const nombre = String(req.body.nombre || '').trim().replace(/\s+/g, ' ');
   const correo = validarCorreo(req.body.correo);
@@ -58,10 +80,26 @@ router.post('/registro', (req, res) => {
   const db = conexion();
   if (db.prepare('SELECT 1 FROM usuarios WHERE correo = ?').get(correo)) throw new ErrorHttp(409, 'Ya existe una cuenta con ese correo. Inicia sesión.');
 
-  const r = db.prepare('INSERT INTO usuarios (correo, nombre, rol, password_hash, creado_en) VALUES (?, ?, ?, ?, ?)')
-    .run(correo, nombre, 'solicitante', bcrypt.hashSync(password, 10), fecha());
-  const u = db.prepare('SELECT * FROM usuarios WHERE id = ?').get(Number(r.lastInsertRowid));
-  registrarAcceso(u.id, correo, 'Registro de cuenta', true, 'Alta como Alumno / Docente', req);
+  // Con un código de invitación la cuenta recibe el rol del enlace; sin código, se registra como Alumno / Docente
+  const inv = invitacion(req.body.codigo);
+  const rol = inv ? inv.rol : 'solicitante';
+  const via = inv ? 'enlace' : (req.body.desde === 'enlace' ? 'enlace' : 'registro');
+  bitacora.establecer(db, { id: null, nombre: `${nombre} (registro propio)` }, via);
+
+  const u = (() => {
+    db.exec('BEGIN');
+    try {
+      const r = db.prepare('INSERT INTO usuarios (correo, nombre, rol, password_hash, registrado_por, creado_en) VALUES (?, ?, ?, ?, ?, ?)')
+        .run(correo, nombre, rol, bcrypt.hashSync(password, 10), via, fecha());
+      if (inv) db.prepare('UPDATE invitaciones SET usos = usos + 1 WHERE id = ?').run(inv.id);
+      db.exec('COMMIT');
+      return db.prepare('SELECT * FROM usuarios WHERE id = ?').get(Number(r.lastInsertRowid));
+    } catch (e) {
+      db.exec('ROLLBACK');
+      throw e;
+    }
+  })();
+  registrarAcceso(u.id, correo, 'Registro de cuenta', true, `Alta como ${ROL_TEXTO[rol]}${inv ? ` con el enlace ${inv.codigo}` : ''}`, req);
   res.status(201).json({ token: firmarToken(u), usuario: publico(u) });
 });
 

@@ -1,6 +1,6 @@
 {
   "name": "campuscare",
-  "version": "3.0.0",
+  "version": "4.0.0",
   "description": "CampusCare PWA: gestión de incidencias de infraestructura universitaria (Node.js + Express + SQLite + Service Worker)",
   "main": "server.js",
   "private": true,

@@ -14,6 +14,8 @@ const eventos = require('./src/eventos');
 const { CARPETA: UPLOADS } = require('./src/fotos');
 const vistas = require('./src/vistas');
 const push = require('./src/push');
+const bitacora = require('./src/bitacora');
+const qr = require('./src/qr');
 
 const PUERTO = Number(process.env.PORT) || 3000;
 
@@ -29,13 +31,21 @@ app.disable('x-powered-by');
 // Permite usar el frontend desde Live Server (otro puerto) durante el desarrollo
 app.use('/api', (req, res, next) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Modulo');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
   if (req.method === 'OPTIONS') return res.sendStatus(204);
   next();
 });
 
 app.use(express.json({ limit: '12mb' })); // las fotos llegan en base64
+
+// Contexto de la bitácora: cada petición empieza como "visitante"; requiereSesion pone al usuario.
+// El frontend indica en la cabecera X-Modulo desde qué módulo se hizo el cambio.
+app.use('/api', (req, res, next) => {
+  req.modulo = bitacora.moduloValido(String(req.headers['x-modulo'] || 'app'));
+  bitacora.establecer(conexion(), null, req.modulo);
+  next();
+});
 
 // Registro de peticiones en la terminal
 app.use('/api', (req, res, next) => {
@@ -72,6 +82,25 @@ app.get('/api/push/clave', (req, res) => {
   res.json({ clave: push.clavePublica() });
 });
 
+/* Prueba de red de la auditoría Wi-Fi: respuesta sin caché (latencia) y un bloque de datos (velocidad) */
+// Express responde también a HEAD con esta misma ruta
+app.get('/api/red/ping', (req, res) => { res.setHeader('Cache-Control', 'no-store'); res.json({ ok: true, t: Date.now() }); });
+const BLOQUE_PRUEBA = Buffer.alloc(256 * 1024, 'CampusCare');
+app.get('/api/red/prueba', (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  res.type('application/octet-stream').send(BLOQUE_PRUEBA);
+});
+
+/* Código QR en SVG para compartir el enlace de registro (solo direcciones de esta misma aplicación) */
+app.get('/api/qr', (req, res, next) => {
+  const texto = String(req.query.texto || '');
+  let host = null;
+  try { host = new URL(texto).host; } catch { /* no es una dirección */ }
+  if (!host || host !== req.headers.host || texto.length > 300) return next(new ErrorHttp(400, 'Solo se generan códigos QR de enlaces de esta aplicación.'));
+  res.setHeader('Cache-Control', 'public, max-age=86400');
+  res.type('image/svg+xml').send(qr.svg(texto));
+});
+
 app.use('/api/auth', require('./routes/auth'));
 
 /* ---------- Rutas protegidas (requieren token JWT) ---------- */
@@ -82,6 +111,9 @@ app.use('/api/notificaciones', requiereSesion, require('./routes/notificaciones'
 app.use('/api/usuarios', requiereSesion, requiereRol('admin'), require('./routes/usuarios'));
 app.use('/api/admin', requiereSesion, requiereRol('admin'), require('./routes/admin'));
 app.use('/api/push', requiereSesion, require('./routes/push'));
+app.use('/api/red', requiereSesion, require('./routes/red'));
+app.use('/api/invitaciones', requiereSesion, require('./routes/invitaciones'));
+app.use('/api/bitacora', requiereSesion, require('./routes/bitacora'));
 
 app.use('/api', (req, res, next) => next(new ErrorHttp(404, `No existe la ruta ${req.method} ${req.originalUrl}`)));
 
@@ -99,6 +131,15 @@ app.get('/reporte/:folio', (req, res) => {
   res.setHeader('Cache-Control', 'no-cache');
   res.status(status).send(html);
 });
+
+/* ---------- Página de bienvenida y registro por enlace (misma aplicación de una sola página) ---------- */
+const INDEX = path.join(__dirname, 'public', 'index.html');
+for (const ruta of ['/bienvenida', '/registro', '/entrar']) {
+  app.get(ruta, (req, res) => {
+    res.setHeader('Cache-Control', 'no-cache');
+    res.sendFile(INDEX);
+  });
+}
 
 /* ---------- Archivos del frontend y fotografías ---------- */
 app.use('/uploads', express.static(UPLOADS, { maxAge: '7d' }));

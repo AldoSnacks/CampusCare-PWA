@@ -7,7 +7,7 @@
    ========================================================= */
 'use strict';
 
-const VERSION = 'v3.0.0';
+const VERSION = 'v4.0.0';
 const CACHE_APP = `campuscare-app-${VERSION}`;
 const CACHE_IMG = 'campuscare-imagenes';
 const CACHE_API = 'campuscare-api';
@@ -24,6 +24,13 @@ const APP_SHELL = [
   '/app.js',
   '/admin.js',
   '/pwa.js',
+  '/equipo/equipo.css',
+  '/equipo/integracion.js',
+  '/equipo/sin-conexion.js',
+  '/equipo/reporte-visual.js',
+  '/equipo/auditoria-red.js',
+  '/equipo/historial.js',
+  '/equipo/bienvenida.js',
   '/manifest.webmanifest',
   '/offline.html',
   '/icons/icon-192.png',
@@ -69,7 +76,8 @@ self.addEventListener('fetch', event => {
   if (url.origin !== location.origin) return;
 
   if (url.pathname.startsWith('/api/')) {
-    if (url.pathname === '/api/eventos' || url.pathname.startsWith('/api/admin/') || url.pathname.startsWith('/api/push/')) return;
+    // No se guardan: tiempo real, administración, push, sesión (token) ni las pruebas de red de la auditoría Wi-Fi
+    if (url.pathname === '/api/eventos' || /^\/api\/(admin|push|auth)\//.test(url.pathname) || /^\/api\/red\/(ping|prueba)/.test(url.pathname)) return;
     event.respondWith(redPrimero(req));
     return;
   }
@@ -161,14 +169,17 @@ self.addEventListener('push', event => {
   let datos = {};
   try { datos = event.data ? event.data.json() : {}; } catch { datos = { body: event.data?.text() }; }
   const titulo = datos.title || 'CampusCare';
+  // Las alertas críticas (severidad Crítica o zona muerta de Wi-Fi) no se cierran solas y vibran más
+  const alerta = /^Alerta crítica/i.test(titulo);
   event.waitUntil((async () => {
     await self.registration.showNotification(titulo, {
       body: datos.body || 'Hay una actualización en tus reportes.',
       icon: '/icons/icon-192.png',
       badge: '/icons/icon-192.png',
-      tag: datos.folio || 'campuscare',
+      tag: alerta ? `alerta-${datos.folio || Date.now()}` : (datos.folio || 'campuscare'),
       renotify: true,
-      vibrate: [120, 60, 120],
+      requireInteraction: alerta,
+      vibrate: alerta ? [300, 120, 300, 120, 300] : [120, 60, 120],
       data: { url: datos.url || '/', folio: datos.folio || null },
       actions: [{ action: 'abrir', title: 'Ver en CampusCare' }]
     });
@@ -194,9 +205,12 @@ self.addEventListener('notificationclick', event => {
 });
 
 /* =========================================================
-   Sincronización en segundo plano (reportes hechos sin internet)
-   La página guarda el reporte en IndexedDB y registra el evento
-   "enviar-reportes"; el navegador lo dispara al volver la red.
+   Sincronización en segundo plano (cambios hechos sin internet)
+   La página guarda en IndexedDB cada cambio (reporte nuevo,
+   edición, cambio de estado, borrado o auditoría Wi-Fi) y
+   registra el evento "enviar-reportes"; el navegador lo
+   dispara al volver la red. Se envían en el orden en que se
+   hicieron (módulo "sin conexión" de Adrián Olmedo).
    ========================================================= */
 self.addEventListener('sync', event => {
   if (event.tag === 'enviar-reportes') event.waitUntil(enviarPendientes());
@@ -234,25 +248,51 @@ function enviarPendientes() {
     if (!token || !pendientes?.length) return;
     let uid = null;
     try { uid = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))).uid; } catch { return; }
-    // Solo se envían los reportes del usuario que tiene la sesión abierta
-    for (const p of pendientes.filter(x => !x.error && x.uid === uid)) {
-      const res = await fetch('/api/tickets', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify(p.datos)
-      }); // si no hay red, fetch lanza un error y el navegador reintenta el sync más tarde
+    // Solo los cambios del usuario con sesión abierta, en el orden en que se hicieron
+    const cola = pendientes.filter(x => !x.error && x.uid === uid).sort((a, b) => a.creado - b.creado);
+    const folios = {}; // folio provisional (LOCAL-0001) → folio real (CC-1030)
+    for (const original of cola) {
+      let p = original;
+      for (const [local, real] of Object.entries(folios)) {
+        if (p.folio === local || (p.ruta || '').includes(local)) p = { ...p, folio: real, ruta: p.ruta.replace(local, encodeURIComponent(real)) };
+      }
+      const metodo = p.metodo || 'POST';
+      const tipo = p.tipo || 'crear';
+      const res = await fetch(`/api${p.ruta || '/tickets'}`, {
+        method: metodo,
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'X-Modulo': 'sin-conexion' },
+        body: metodo === 'DELETE' ? undefined : JSON.stringify(p.datos)
+      }); // si no hay red, fetch lanza un error, se detiene la cola y el navegador reintenta más tarde
       const cuerpo = await res.json().catch(() => ({}));
       if (res.status === 401) return; // sesión expirada: se intentará al volver a iniciar sesión
       if (res.ok) {
         await operacion(db, 'pendientes', 'readwrite', s => s.delete(p.clienteId));
-        avisar({ tipo: 'reporte-enviado', clienteId: p.clienteId, folio: cuerpo.folio });
-      } else {
+        if (tipo === 'crear' && p.folioLocal && cuerpo.folio) {
+          folios[p.folioLocal] = cuerpo.folio;
+          await reescribirFolios(db, p.folioLocal, cuerpo.folio);
+        }
+        avisar(tipo === 'crear' ? { tipo: 'reporte-enviado', clienteId: p.clienteId, folio: cuerpo.folio } : { tipo: 'op-enviada', etiqueta: p.etiqueta, folio: cuerpo.folio });
+      } else if (tipo === 'crear') {
+        // Un reporte nuevo se conserva con el motivo para que la persona lo corrija o lo descarte
         await operacion(db, 'pendientes', 'readwrite', s => s.put({ ...p, error: cuerpo.error || `Error ${res.status}` }));
         avisar({ tipo: 'reporte-error', clienteId: p.clienteId, error: cuerpo.error });
+      } else {
+        // Cambio rechazado por el servidor (permisos o estado distinto): se descarta y se avisa
+        await operacion(db, 'pendientes', 'readwrite', s => s.delete(p.clienteId));
+        avisar({ tipo: 'op-descartada', etiqueta: p.etiqueta, error: cuerpo.error || `Error ${res.status}` });
       }
     }
   })().finally(() => { enviando = null; });
   return enviando;
+}
+/* Cambia el folio provisional por el real en los cambios que siguen en la cola */
+async function reescribirFolios(db, local, real) {
+  const todos = await operacion(db, 'pendientes', 'readonly', s => s.getAll());
+  for (const p of todos) {
+    if (p.folio === local || (p.ruta || '').includes(local)) {
+      await operacion(db, 'pendientes', 'readwrite', s => s.put({ ...p, folio: real, ruta: p.ruta.replace(local, encodeURIComponent(real)), etiqueta: (p.etiqueta || '').replace(local, real) }));
+    }
+  }
 }
 async function avisar(mensaje) {
   const ventanas = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });

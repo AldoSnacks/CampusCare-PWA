@@ -18,6 +18,7 @@ CREATE TABLE IF NOT EXISTS usuarios (
   password_hash  TEXT    NOT NULL,
   avatar         TEXT,
   activo         INTEGER NOT NULL DEFAULT 1 CHECK (activo IN (0, 1)),
+  registrado_por TEXT    NOT NULL DEFAULT 'administrador',  -- semilla, registro, enlace o administrador
   creado_en      TEXT    NOT NULL DEFAULT (datetime('now', 'localtime'))
 );
 
@@ -84,6 +85,8 @@ CREATE TABLE IF NOT EXISTS tickets (
   longitud        REAL    CHECK (longitud IS NULL OR longitud BETWEEN -180 AND 180),
   precision_m     REAL,
   cliente_id      TEXT,   -- identificador generado en el navegador: evita duplicados al reenviar desde la cola offline
+  origen          TEXT    NOT NULL DEFAULT 'formulario'   -- módulo que creó el reporte
+                  CHECK (origen IN ('formulario', 'reporte_visual', 'auditoria_red', 'sin_conexion')),
   creado_en       TEXT    NOT NULL DEFAULT (datetime('now', 'localtime')),
   actualizado_en  TEXT    NOT NULL DEFAULT (datetime('now', 'localtime'))
 );
@@ -204,3 +207,81 @@ CREATE TABLE IF NOT EXISTS suscripciones_push (
   agente      TEXT,
   creada_en   TEXT    NOT NULL DEFAULT (datetime('now', 'localtime'))
 );
+
+-- =========================================================
+--  MÓDULOS DEL EQUIPO
+-- =========================================================
+
+-- ---------------------------------------------------------
+-- AUDITORÍAS DE RED WI-FI (aportación de Carlos Ojeda)
+-- Cada medición de latencia, jitter, pérdida y velocidad con su
+-- semáforo de aptitud académica. Si la red está degradada puede
+-- escalarse a un ticket de Red/TI (ticket_id).
+-- ---------------------------------------------------------
+CREATE TABLE IF NOT EXISTS auditorias_red (
+  id                 INTEGER PRIMARY KEY AUTOINCREMENT,
+  usuario_id         INTEGER REFERENCES usuarios(id) ON DELETE SET NULL,
+  espacio_id         INTEGER REFERENCES espacios(id) ON DELETE SET NULL,
+  ubicacion          TEXT    NOT NULL,
+  latencia_ms        INTEGER,
+  jitter_ms          INTEGER,
+  perdida_pct        INTEGER CHECK (perdida_pct IS NULL OR perdida_pct BETWEEN 0 AND 100),
+  velocidad_mbps     REAL,
+  tipo_conexion      TEXT,
+  sin_conexion       INTEGER NOT NULL DEFAULT 0 CHECK (sin_conexion IN (0, 1)),   -- "zona muerta"
+  apt_videollamadas  TEXT,
+  apt_git            TEXT,
+  apt_descargas      TEXT,
+  degradada          INTEGER NOT NULL DEFAULT 0 CHECK (degradada IN (0, 1)),
+  ticket_id          INTEGER REFERENCES tickets(id) ON DELETE SET NULL,
+  cliente_id         TEXT,
+  medido_en          TEXT    NOT NULL,
+  creado_en          TEXT    NOT NULL DEFAULT (datetime('now', 'localtime'))
+);
+CREATE INDEX IF NOT EXISTS idx_red_espacio ON auditorias_red(espacio_id);
+
+-- ---------------------------------------------------------
+-- INVITACIONES: enlace y código QR para registrarse desde el teléfono
+-- ---------------------------------------------------------
+CREATE TABLE IF NOT EXISTS invitaciones (
+  id          INTEGER PRIMARY KEY AUTOINCREMENT,
+  codigo      TEXT    NOT NULL UNIQUE,
+  rol         TEXT    NOT NULL CHECK (rol IN ('solicitante', 'mantenimiento', 'admin')),
+  creada_por  INTEGER REFERENCES usuarios(id) ON DELETE SET NULL,
+  usos        INTEGER NOT NULL DEFAULT 0,
+  max_usos    INTEGER NOT NULL DEFAULT 50 CHECK (max_usos > 0),
+  activa      INTEGER NOT NULL DEFAULT 1 CHECK (activa IN (0, 1)),
+  expira_en   TEXT    NOT NULL,
+  creada_en   TEXT    NOT NULL DEFAULT (datetime('now', 'localtime'))
+);
+
+-- ---------------------------------------------------------
+-- BITÁCORA DE CAMBIOS: qué se agregó, editó o borró, quién y desde qué módulo.
+-- La llenan triggers automáticos (src/bitacora.js); "contexto" guarda
+-- al usuario de la petición en curso para que el trigger sepa quién fue.
+-- ---------------------------------------------------------
+CREATE TABLE IF NOT EXISTS contexto (
+  id              INTEGER PRIMARY KEY CHECK (id = 1),
+  usuario_id      INTEGER,
+  usuario_nombre  TEXT,
+  modulo          TEXT,
+  fecha           TEXT      -- solo la usa la carga de datos de demostración (fechas en el pasado)
+);
+INSERT OR IGNORE INTO contexto (id, usuario_id, usuario_nombre, modulo) VALUES (1, NULL, 'Sistema', 'sistema');
+
+CREATE TABLE IF NOT EXISTS bitacora (
+  id              INTEGER PRIMARY KEY AUTOINCREMENT,
+  fecha           TEXT    NOT NULL DEFAULT (datetime('now', 'localtime')),
+  tabla           TEXT    NOT NULL,
+  operacion       TEXT    NOT NULL CHECK (operacion IN ('INSERT', 'UPDATE', 'DELETE')),
+  registro_id     TEXT,
+  resumen         TEXT,
+  cambios         TEXT,     -- en una edición: qué campos cambiaron (antes → después)
+  antes           TEXT,     -- JSON del registro antes del cambio
+  despues         TEXT,     -- JSON del registro después del cambio
+  usuario_id      INTEGER,  -- sin llave foránea: el historial se conserva aunque se borre el usuario
+  usuario_nombre  TEXT,
+  modulo          TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_bitacora_fecha   ON bitacora(fecha);
+CREATE INDEX IF NOT EXISTS idx_bitacora_usuario ON bitacora(usuario_id);
