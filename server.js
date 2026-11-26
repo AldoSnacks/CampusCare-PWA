@@ -114,6 +114,7 @@ app.use('/api/push', requiereSesion, require('./routes/push'));
 app.use('/api/red', requiereSesion, require('./routes/red'));
 app.use('/api/invitaciones', requiereSesion, require('./routes/invitaciones'));
 app.use('/api/bitacora', requiereSesion, require('./routes/bitacora'));
+app.use('/api/sensores', requiereSesion, require('./routes/sensores'));
 
 app.use('/api', (req, res, next) => next(new ErrorHttp(404, `No existe la ruta ${req.method} ${req.originalUrl}`)));
 

@@ -10,7 +10,7 @@ const { MODULOS } = require('../src/bitacora');
 const router = express.Router();
 const TABLAS = {
   tickets: 'Reportes', usuarios: 'Usuarios', resoluciones: 'Soluciones', auditorias_red: 'Auditorías de red',
-  invitaciones: 'Enlaces de registro', edificios: 'Edificios', niveles: 'Niveles', espacios: 'Espacios',
+  invitaciones: 'Enlaces de registro', sensores_eventos: 'Sensores (Arduino)', edificios: 'Edificios', niveles: 'Niveles', espacios: 'Espacios',
   categorias: 'Categorías', severidades: 'Severidades'
 };
 const OPERACIONES = { INSERT: 'Agregado', UPDATE: 'Editado', DELETE: 'Borrado' };

@@ -39,6 +39,11 @@ function emitir(motivo = 'cambio') {
   for (const c of clientes) enviar(c, 'cambio', { motivo, at: Date.now() });
 }
 
+/* Envía datos a todos los navegadores (lecturas de los sensores en vivo) */
+function difundir(evento, datos) {
+  for (const c of clientes) enviar(c, evento, datos);
+}
+
 const totalConectados = () => clientes.size;
 
-module.exports = { conectar, emitir, totalConectados };
+module.exports = { conectar, emitir, difundir, totalConectados };

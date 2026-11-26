@@ -7,7 +7,7 @@
    ========================================================= */
 'use strict';
 
-const VERSION = 'v4.0.1';
+const VERSION = 'v4.1.0';
 const CACHE_APP = `campuscare-app-${VERSION}`;
 const CACHE_IMG = 'campuscare-imagenes';
 const CACHE_API = 'campuscare-api';
@@ -30,6 +30,7 @@ const APP_SHELL = [
   '/equipo/reporte-visual.js',
   '/equipo/auditoria-red.js',
   '/equipo/historial.js',
+  '/equipo/monitoreo.js',
   '/equipo/bienvenida.js',
   '/manifest.webmanifest',
   '/offline.html',

@@ -86,7 +86,7 @@ CREATE TABLE IF NOT EXISTS tickets (
   precision_m     REAL,
   cliente_id      TEXT,   -- identificador generado en el navegador: evita duplicados al reenviar desde la cola offline
   origen          TEXT    NOT NULL DEFAULT 'formulario'   -- módulo que creó el reporte
-                  CHECK (origen IN ('formulario', 'reporte_visual', 'auditoria_red', 'sin_conexion')),
+                  CHECK (origen IN ('formulario', 'reporte_visual', 'auditoria_red', 'sin_conexion', 'sensor')),
   creado_en       TEXT    NOT NULL DEFAULT (datetime('now', 'localtime')),
   actualizado_en  TEXT    NOT NULL DEFAULT (datetime('now', 'localtime'))
 );
@@ -285,3 +285,22 @@ CREATE TABLE IF NOT EXISTS bitacora (
 );
 CREATE INDEX IF NOT EXISTS idx_bitacora_fecha   ON bitacora(fecha);
 CREATE INDEX IF NOT EXISTS idx_bitacora_usuario ON bitacora(usuario_id);
+
+-- =========================================================
+-- Monitoreo físico con Arduino: eventos de los sensores
+-- (luz del aula, flama en el equipo de cómputo, nivel de la cisterna)
+-- Solo se guardan los cambios de estado, no cada lectura.
+-- =========================================================
+CREATE TABLE IF NOT EXISTS sensores_eventos (
+  id          INTEGER PRIMARY KEY AUTOINCREMENT,
+  sensor      TEXT    NOT NULL CHECK (sensor IN ('luz', 'flama', 'agua')),
+  estado      TEXT    NOT NULL,          -- encendida, falla, apagada · normal, fuego · normal, bajo, desbordamiento
+  anterior    TEXT,
+  valor       INTEGER,                   -- porcentaje 0 a 100
+  mensaje     TEXT    NOT NULL,
+  fuente      TEXT    NOT NULL DEFAULT 'arduino' CHECK (fuente IN ('arduino', 'demo')),
+  ticket_id   INTEGER REFERENCES tickets(id) ON DELETE SET NULL,
+  usuario_id  INTEGER REFERENCES usuarios(id) ON DELETE SET NULL,
+  creado_en   TEXT    NOT NULL DEFAULT (datetime('now', 'localtime'))
+);
+CREATE INDEX IF NOT EXISTS idx_sensores_fecha ON sensores_eventos(creado_en);

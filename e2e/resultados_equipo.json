@@ -18,7 +18,7 @@
     "modulo": "Interfaz móvil",
     "prueba": "El menú \"Más\" da acceso a todas las secciones del rol desde el teléfono",
     "resultado": "Aprobada",
-    "detalle": "13 secciones"
+    "detalle": "14 secciones"
   },
   {
     "id": "E04",
@@ -39,7 +39,7 @@
     "modulo": "Auditoría Wi-Fi",
     "prueba": "Mide latencia, jitter y velocidad y guarda la medición",
     "resultado": "Aprobada",
-    "detalle": "9 ms · 408.16 Mbps · Apto"
+    "detalle": "8 ms · 512.82 Mbps · Apto"
   },
   {
     "id": "E07",

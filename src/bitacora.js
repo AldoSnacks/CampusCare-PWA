@@ -55,6 +55,11 @@ const TABLAS = {
     resumen: "'Auditoría Wi-Fi · ' || X.ubicacion || ' · ' || CASE WHEN X.sin_conexion = 1 THEN 'zona muerta (sin conexión)' ELSE X.latencia_ms || ' ms · ' || X.velocidad_mbps || ' Mbps' END",
     cols: ['ubicacion', 'latencia_ms', 'jitter_ms', 'perdida_pct', 'velocidad_mbps', 'tipo_conexion', 'sin_conexion', 'degradada', 'ticket_id']
   },
+  sensores_eventos: {
+    id: 'X.id',
+    resumen: "'Sensor de ' || X.sensor || ' · ' || X.mensaje || CASE WHEN X.fuente = 'demo' THEN ' (demostración)' ELSE '' END",
+    cols: ['sensor', 'estado', 'anterior', 'valor', 'fuente', 'ticket_id']
+  },
   invitaciones: {
     id: 'X.codigo',
     resumen: "'Enlace de registro ' || X.codigo || ' · rol ' || X.rol || ' · ' || X.usos || ' uso(s)'",
@@ -124,6 +129,7 @@ const MODULOS = {
   'auditoria-red': 'Auditoría de red Wi-Fi',
   'sin-conexion': 'Cola sin conexión',
   'mapa-calor': 'Mapa de calor',
+  sensores: 'Monitoreo físico (Arduino)',
   registro: 'Registro de cuenta',
   enlace: 'Registro por enlace o QR',
   administracion: 'Administración',

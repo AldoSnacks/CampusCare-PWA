@@ -35,6 +35,7 @@ Además:
 - **Registro por enlace o QR** (`/registro?codigo=...`): quien entra desde su teléfono recibe el rol de la invitación y la interfaz completa de ese rol. Vista *Invitar por enlace o QR*; tabla `invitaciones`. Enlaces de demostración: `EXPO-2026` (administrador) y `ALUM-2026` (alumno/docente).
 - **Historial de registros**: triggers de SQLite (`src/bitacora.js`) anotan en la tabla `bitacora` cada alta, edición y borrado, con el antes y el después, la persona y el módulo desde el que se hizo.
 - **Alertas críticas** en la web y en el teléfono para reportes de severidad Crítica y zonas muertas de Wi-Fi.
+- **Monitoreo físico con Arduino** (vista *Monitoreo físico*): sensor de luz, sensor de flama y potenciómetro animan la cisterna, el equipo de cómputo y el aula. La computadora con el Arduino lo lee por USB con Web Serial (Chrome o Edge) y los demás dispositivos lo ven en vivo. Los cambios que duran más de 1 s quedan en la tabla `sensores_eventos` y generan reportes y alertas. Código del Arduino: `arduino/CampusCare_Sensores/CampusCare_Sensores.ino`. Sin Arduino se puede usar el modo demostración.
 - En el teléfono, el botón **Más** de la barra inferior abre todas las secciones del rol.
 
 ## Características PWA
@@ -258,9 +259,10 @@ CampusCare-PWA/
 ## 7. Pruebas
 
 ```
-npm test                         # 30 pruebas del servidor (node:test)
+npm test                         # 33 pruebas del servidor (node:test)
 python e2e/pwa_e2e.py http://localhost:3000      # 19 pruebas de la PWA en Chromium (requiere: pip install playwright)
 python e2e/equipo_e2e.py http://localhost:3000   # 13 pruebas de los módulos del equipo
+python e2e/sensores_e2e.py http://localhost:3000 # 8 pruebas del monitoreo físico (Arduino simulado)
 ```
 
 Las pruebas E2E abren Chromium, simulan la cámara con `e2e/camara.y4m` y el GPS con coordenadas fijas, y guardan capturas en `e2e/capturas/` y el resultado en `e2e/resultados.json`.

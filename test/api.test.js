@@ -318,3 +318,47 @@ async function pedirConModulo(ruta, modulo, { method = 'GET', body, token } = {}
   });
   return { status: res.status, datos: await res.json() };
 }
+
+/* ---------- Monitoreo físico con Arduino ---------- */
+const esperar = ms => new Promise(r => setTimeout(r, ms));
+const lectura = (extra = {}) => pedir('/api/sensores/lectura', { method: 'POST', token: tokens.admin, body: { luz: 85, fuego: false, flama: 3, agua: 55, fuente: 'arduino', ...extra } });
+
+test('P31 · Un parpadeo de flama de menos de 1 segundo no genera alarma', async () => {
+  await lectura();
+  await lectura({ fuego: true, flama: 80 });
+  const r = await lectura();
+  assert.equal(r.status, 200);
+  assert.equal(r.datos.eventos.length, 0);
+  assert.equal(r.datos.ultimo.estados.flama, 'normal');
+});
+
+test('P32 · Fuego sostenido crea evento, reporte Crítico de origen sensor y alerta', async () => {
+  await lectura({ fuego: true, flama: 90 });
+  await esperar(1100);
+  const r = await lectura({ fuego: true, flama: 92 });
+  assert.equal(r.datos.eventos.length, 1);
+  const ev = r.datos.eventos[0];
+  assert.equal(ev.sensor, 'flama');
+  assert.equal(ev.estado, 'fuego');
+  assert.match(ev.folio, /^CC-\d+$/);
+  const t = (await pedir('/api/tickets', { token: tokens.admin })).datos.find(x => x.id === ev.folio);
+  assert.equal(t.origen, 'sensor');
+  assert.equal(t.severidad, 'Crítica');
+  const n = await pedir('/api/notificaciones', { token: tokens.admin });
+  assert.ok(n.datos.some(x => /^Alerta crítica/.test(x.title) && x.ticketId === ev.folio));
+});
+
+test('P33 · La cisterna baja dos veces no duplica el reporte abierto', async () => {
+  await lectura({ agua: 10 }); await esperar(1100);
+  const a = await lectura({ agua: 8 });
+  await lectura({ agua: 50 }); await esperar(1100); await lectura({ agua: 52 });
+  await lectura({ agua: 5 }); await esperar(1100);
+  const b = await lectura({ agua: 6 });
+  const evA = a.datos.eventos.find(e => e.sensor === 'agua'), evB = b.datos.eventos.find(e => e.sensor === 'agua');
+  assert.equal(evA.estado, 'bajo');
+  assert.match(evA.folio, /^CC-\d+$/);
+  assert.equal(evB.folio, evA.folio);
+  const g = await pedir('/api/sensores', { token: tokens.alumno });
+  assert.equal(g.datos.enLinea, true);
+  assert.ok(g.datos.eventos.filter(e => e.sensor === 'agua').length >= 3);
+});

@@ -1,0 +1,50 @@
+[
+  {
+    "id": "S01",
+    "prueba": "Conecta el Arduino por Web Serial y convierte las lecturas",
+    "resultado": "Aprobada",
+    "detalle": "{\"luz\": 98, \"flama\": 0, \"fuego\": false, \"agua\": 55}"
+  },
+  {
+    "id": "S02",
+    "prueba": "La flama sostenida anima el fuego y crea evento con reporte",
+    "resultado": "Aprobada",
+    "detalle": "{\"id\": 1, \"sensor\": \"flama\", \"estado\": \"fuego\", \"anterior\": \"normal\", \"valor\": 100, \"mensaje\": \"Fuego detectado en el equipo de c\\u00f3mputo\", \"folio\": \"CC-1028\", \"severidad\": \"Cr\\u00edtica\", \"at\": 1795673948704, \"fuente\": \"arduino\", \"usuario\": \"Lic. Patricia G\\u00f3mez\"}"
+  },
+  {
+    "id": "S03",
+    "prueba": "El teléfono ve el fuego en vivo y recibe la alerta",
+    "resultado": "Aprobada",
+    "detalle": ""
+  },
+  {
+    "id": "S04",
+    "prueba": "Luz apagada y cisterna baja generan sus eventos",
+    "resultado": "Aprobada",
+    "detalle": "[{\"luz\": \"apagada\", \"flama\": \"normal\", \"agua\": \"bajo\"}, [\"luz:apagada\", \"flama:normal\", \"agua:bajo\", \"flama:fuego\"]]"
+  },
+  {
+    "id": "S05",
+    "prueba": "La página manda comandos al Arduino (silenciar y probar)",
+    "resultado": "Aprobada",
+    "detalle": "ST"
+  },
+  {
+    "id": "S06",
+    "prueba": "El modo demostración funciona sin Arduino",
+    "resultado": "Aprobada",
+    "detalle": "{\"id\": 5, \"sensor\": \"agua\", \"estado\": \"desbordamiento\", \"anterior\": \"bajo\", \"valor\": 95, \"mensaje\": \"La cisterna se est\\u00e1 desbordando\", \"folio\": \"CC-1030\", \"severidad\": \"Cr\\u00edtica\", \"at\": 1795673958719, \"fuente\": \"demo\", \"usuario\": \"Lic. Patricia G\\u00f3mez\"}"
+  },
+  {
+    "id": "S08",
+    "prueba": "Los eventos de los sensores quedan en el historial de registros",
+    "resultado": "Aprobada",
+    "detalle": "[5, \"Monitoreo físico (Arduino)\"]"
+  },
+  {
+    "id": "S07",
+    "prueba": "Sin errores de JavaScript",
+    "resultado": "Aprobada",
+    "detalle": ""
+  }
+]

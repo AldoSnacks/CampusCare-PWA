@@ -28,6 +28,7 @@ const DESCRIPCIONES = {
   notificaciones: 'Avisos enviados a cada usuario.',
   accesos: 'Bitácora de inicios de sesión y registros de cuenta.',
   auditorias_red: 'Mediciones de la auditoría Wi-Fi con su semáforo de aptitud (módulo de Carlos Ojeda).',
+  sensores_eventos: 'Cambios de estado de los sensores del Arduino: luz del aula, flama en el equipo de cómputo y nivel de la cisterna.',
   invitaciones: 'Enlaces y códigos QR para registrarse desde el teléfono con un rol definido.',
   bitacora: 'Historial automático de cambios: qué se agregó, editó o borró, quién y desde qué módulo (solo lectura).',
   suscripciones_push: 'Navegadores y teléfonos suscritos a las notificaciones push.',

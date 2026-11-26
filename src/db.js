@@ -48,7 +48,17 @@ function migrar(d) {
 
   // Versión integrada del equipo: origen de cada reporte y forma en que se dio de alta cada cuenta
   if (!columnas.includes('origen')) {
-    d.exec("ALTER TABLE tickets ADD COLUMN origen TEXT NOT NULL DEFAULT 'formulario' CHECK (origen IN ('formulario', 'reporte_visual', 'auditoria_red', 'sin_conexion'))");
+    d.exec("ALTER TABLE tickets ADD COLUMN origen TEXT NOT NULL DEFAULT 'formulario' CHECK (origen IN ('formulario', 'reporte_visual', 'auditoria_red', 'sin_conexion', 'sensor'))");
+  }
+  // Bases creadas antes del monitoreo físico: se agrega 'sensor' a la lista de orígenes permitidos
+  const sqlTickets = d.prepare("SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'tickets'").get().sql;
+  if (!sqlTickets.includes("'sensor'")) {
+    const version = d.prepare('PRAGMA schema_version').get().schema_version;
+    d.exec('PRAGMA writable_schema = ON');
+    d.prepare("UPDATE sqlite_master SET sql = replace(sql, ?, ?) WHERE type = 'table' AND name = 'tickets'")
+      .run("'sin_conexion')", "'sin_conexion', 'sensor')");
+    d.exec(`PRAGMA schema_version = ${version + 1}`);
+    d.exec('PRAGMA writable_schema = OFF');
   }
   const colsUsuarios = d.prepare('PRAGMA table_info(usuarios)').all().map(c => c.name);
   if (!colsUsuarios.includes('registrado_por')) d.exec("ALTER TABLE usuarios ADD COLUMN registrado_por TEXT NOT NULL DEFAULT 'administrador'");
